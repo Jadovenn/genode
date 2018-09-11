@@ -1,0 +1,240 @@
+---
+
+stages:
+  - sdk-base
+  - prepare
+  - sdk-sculpt
+  - trigger
+
+
+variables:
+  SDK_BASE_CACHE:    $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/sdk/base:cache
+  SDK_BASE_IMAGE:    $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/sdk/base:pipeline-$CI_PIPELINE_IID
+  SDK_SCULPT_IMAGE:  $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/sdk/sculpt:pipeline-$CI_PIPELINE_IID
+
+  GENODE_WORLD_REPO: https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/gapfruit/development/genode-world.git
+  GENODE_WORLD_HASH: 101ec834284177b46573ef8b5b7c489c712d4d78
+
+
+sdk-base:
+  stage: sdk-base
+  tags:
+    - docker
+  interruptible: true
+  image: docker:stable
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  script:
+    - echo "Building $SDK_BASE_IMAGE ..."
+    - docker build --tag $SDK_BASE_IMAGE
+                   --target base
+                   -f docker/sdk/Dockerfile .
+    - docker push $SDK_BASE_IMAGE
+
+
+.prepare_base:
+  stage: prepare
+  image: $SDK_BASE_IMAGE
+  tags:
+    - ports/prepare
+  interruptible: true
+  script:
+    - ./tool/ports/prepare_port $PORTS -j8
+
+    # delete all port archives, except the current
+    - for port in $PORTS; do
+        current=$(basename $(tool/ports/current $port));
+        find contrib/ -mindepth 1 -maxdepth 1 -type f -regextype sed
+                      -regex ".*/$port-[a-f0-9]\{40\}\.tar.xz"
+                    ! -name "$current.tar.xz"
+                      -print -delete;
+      done
+
+    # list port archives
+    - ls -lh contrib/*.tar.xz
+
+
+netperf:
+    extends: .prepare_base
+    before_script:
+        - NETPERF_DIR="$(tool/ports/current netperf)"
+        - NETPERF_BIN="netperf-2.6.0"
+    script:
+        - tool/ports/prepare_port netperf
+        - cd $NETPERF_DIR/src/app/netperf
+        - ./configure
+        - make
+        - cd $CI_PROJECT_DIR
+        - mkdir -p toolchain
+        - cp $NETPERF_DIR/src/app/netperf/src/netperf toolchain/$NETPERF_BIN
+    artifacts:
+        paths:
+            - toolchain/$NETPERF_BIN
+            - contrib/*.tar.xz
+
+
+protobuf_grpc:
+  extends: .prepare_base
+  before_script:
+    - git clone $GENODE_WORLD_REPO repos/world
+    - git -C repos/world reset --hard $GENODE_WORLD_HASH
+    - TOOLCHAIN_HASH="$(cat repos/world/ports/protobuf_grpc-host.hash)"
+    - TOOLCHAIN_ARCHIVE="$(echo genode-protobuf_grpc-host-$TOOLCHAIN_HASH).tar.xz"
+    - PORT_HASH="$(cat repos/world/ports/protobuf_grpc-host.hash)"
+    - PORT_VERSION="20.04"
+    - mkdir -p toolchain
+  script:
+    - if ! tar xPf toolchain/$TOOLCHAIN_ARCHIVE; then
+        repos/world/tool/tool_chain_protobuf build install MAKE_JOBS=4;
+        tar cJf toolchain/$TOOLCHAIN_ARCHIVE /usr/local/genode/protobuf_grpc/$PORT_VERSION --absolute-names;
+      fi
+    - tool/ports/prepare_port protobuf_grpc
+
+    # delete all toolchain archives, except the current
+    - find toolchain/ -mindepth 1 -maxdepth 1 -type f -regextype sed
+                      -regex ".*/genode-protobuf_grpc-host-[a-f0-9]\{40\}\.tar\.xz"
+                    ! -name "genode-protobuf_grpc-host-$TOOLCHAIN_HASH.tar.xz"
+                      -print -delete
+
+    # delete all port archives, except the current
+    - for port in "protobuf_grpc-host" "protobuf_grpc"; do
+        current=$(basename $(tool/ports/current $port));
+        find contrib/ -mindepth 1 -maxdepth 1 -type f -regextype sed
+                      -regex ".*/$port-[a-f0-9]\{40\}\.tar.xz"
+                    ! -name "$current.tar.xz"
+                      -print -delete;
+      done
+
+    # list toolchain and port archives
+    - ls -lh toolchain
+  cache:
+    key: ${CI_JOB_NAME}
+    paths:
+      - toolchain/$TOOLCHAIN_ARCHIVE
+  artifacts:
+    paths:
+      - toolchain/$TOOLCHAIN_ARCHIVE
+
+
+qt5:
+  extends: .prepare_base
+  before_script:
+    - TOOLCHAIN_HASH="$(cat repos/libports/ports/qt5-host.hash)"
+    - TOOLCHAIN_ARCHIVE="$(echo genode-qt5-$TOOLCHAIN_HASH).tar.xz"
+    - PORT_HASH="$(cat repos/libports/ports/qt5.hash)"
+    - PORT_VERSION="22.08"
+    - mkdir -p toolchain
+  script:
+    - if ! tar xPf toolchain/$TOOLCHAIN_ARCHIVE; then
+        tool/tool_chain_qt5 build install MAKE_JOBS=4;
+        tar cJf toolchain/$TOOLCHAIN_ARCHIVE /usr/local/genode/qt5/$PORT_VERSION --absolute-names;
+      fi
+    - tool/ports/prepare_port qt5
+    - rm -fv contrib/qt5-host-$TOOLCHAIN_HASH/*.tar.*
+    - rm -fv contrib/qt5-$PORT_HASH/*.tar.*
+
+    # delete all toolchain archives, except the current
+    - find toolchain/ -mindepth 1 -maxdepth 1 -type f -regextype sed
+                      -regex ".*/genode-qt5-[a-f0-9]\{40\}\.tar\.xz"
+                    ! -name "genode-qt5-$TOOLCHAIN_HASH.tar.xz"
+                      -print -delete
+
+    # delete all port archives, except the current
+    - for port in "qt5-host" "qt5"; do
+        current=$(basename $(tool/ports/current $port));
+        find contrib/ -mindepth 1 -maxdepth 1 -type f -regextype sed
+                      -regex ".*/$port-[a-f0-9]\{40\}\.tar.xz"
+                    ! -name "$current.tar.xz"
+                      -print -delete;
+      done
+
+    # list toolchain and port archives
+    - ls -lh toolchain/$TOOLCHAIN_ARCHIVE
+
+  cache:
+    key: ${CI_JOB_NAME}
+    paths:
+      - toolchain/$TOOLCHAIN_ARCHIVE
+  artifacts:
+    paths:
+      - toolchain/$TOOLCHAIN_ARCHIVE
+
+
+.toolchain_base:
+  extends: .prepare_base
+  tags:
+    - ports/prepare
+  interruptible: true
+  when: manual
+  before_script:
+    - apt-get install -qy --no-install-recommends
+                      file
+                      gnat-9
+                      gprbuild
+                      pkg-config
+                      libncurses-dev
+                      texinfo
+                      gpg
+                      libexpat1-dev
+    - TOOLCHAIN_ARCHIVE="genode-toolchain-$PLATFORM.tar.xz"
+    - mkdir -p toolchain
+  script:
+    - tool/ports/prepare_port binutils gcc
+    - tool/tool_chain $PLATFORM install MAKE_JOBS=4
+    - ls -lh /usr/local/genode/tool || true
+    - tar cJf toolchain/$TOOLCHAIN_ARCHIVE /usr/local/genode/tool/{21.05,current} --absolute-names;
+  artifacts:
+    paths:
+      - toolchain/$TOOLCHAIN_ARCHIVE
+
+
+toolchain_arm:
+  extends: .toolchain_base
+  variables:
+    PLATFORM: arm
+
+
+toolchain_armhf:
+  extends: .toolchain_base
+  variables:
+    PLATFORM: armhf
+
+
+toolchain_x86:
+  extends: .toolchain_base
+  variables:
+    PLATFORM: x86
+
+
+sdk-sculpt:
+  stage: sdk-sculpt
+  tags:
+    - docker
+  interruptible: true
+  image: docker:stable
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  script:
+    - echo "Building $SDK_SCULPT_IMAGE ..."
+    - docker build --tag $SDK_SCULPT_IMAGE
+                   -f docker/sdk/Dockerfile .
+    - docker push $SDK_SCULPT_IMAGE
+
+
+gapfruit:
+  stage: trigger
+  variables:
+    GENODE_REF: $CI_COMMIT_SHA
+    GENODE_URL: $CI_SERVER_HOST/$CI_PROJECT_PATH.git
+  trigger:
+    project: gapfruit/development/gapfruit
+    branch: staging
+    strategy: depend

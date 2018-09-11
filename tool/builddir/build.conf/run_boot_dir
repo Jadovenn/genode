@@ -1,3 +1,7 @@
+ifdef INCLUDE_BOARD_RUN_OPT
+	include $(INCLUDE_BOARD_RUN_OPT)
+endif
+
 ifdef BOARD
 RUN_OPT += ${BOARD_RUN_OPT(${BOARD})}
 endif
