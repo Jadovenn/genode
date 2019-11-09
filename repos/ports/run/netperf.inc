@@ -469,7 +469,7 @@ if {[have_spec linux]} {
 set serial_id [output_spawn_id]
 
 if [have_spec linux] {
-	set ip_addr $lx_ip_addr
+	set ip_addr [get_cmd_arg --host-addr $lx_ip_addr]
 } else {
 	regexp $ip_match_string $output all ip_addr
 	puts ""
