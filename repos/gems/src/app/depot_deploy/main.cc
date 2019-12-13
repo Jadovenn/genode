@@ -56,6 +56,11 @@ struct Depot_deploy::Main
 		_config.update();
 		_blueprint.update();
 
+		if (_config.xml().type() == "empty") {
+			warning("config is empty");
+			return;
+		}
+
 		/*
 		 * Capture original state, used to detect if the config has any effect
 		 */
