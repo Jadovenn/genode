@@ -63,8 +63,10 @@ proc run_boot_dir {binaries} {
 		puts $fh "}"
 		close $fh
 
-		run_image
-	}
+        }
+
+	# Create an image file (in case an image module is included)
+	run_image
 }
 
 
