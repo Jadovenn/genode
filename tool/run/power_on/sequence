@@ -1,0 +1,23 @@
+##
+# Power-on the target hardware by a sequence of external commands
+#
+# \param --power-on-sequence        external command, can be specified one or
+#                                   more times
+#
+
+
+proc power_on_sequence { } {
+	return [get_cmd_arg "--power-on-sequence" ""]
+}
+
+
+proc run_power_on { } {
+	set sequence [power_on_sequence]
+	foreach cmd $sequence {
+		set sanitized_cmd [regexp -inline -all -- {\S+} $cmd]
+		puts "power-on command: $sanitized_cmd"
+		exec {*}$sanitized_cmd
+	}
+
+	return true
+}

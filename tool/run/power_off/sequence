@@ -1,0 +1,23 @@
+##
+# Power-off the target hardware by a sequence of external commands
+#
+# \param --power-off-sequence       external command, can be specified one or
+#                                   more times
+#
+
+
+proc power_off_sequence { } {
+	return [get_cmd_arg "--power-off-sequence" ""]
+}
+
+
+proc run_power_off { } {
+	set sequence [power_off_sequence]
+	foreach cmd $sequence {
+		set sanitized_cmd [regexp -inline -all -- {\S+} $cmd]
+		puts "power-off command: $sanitized_cmd"
+		exec {*}$sanitized_cmd
+	}
+
+	return true
+}
