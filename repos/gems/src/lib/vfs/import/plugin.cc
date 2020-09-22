@@ -139,7 +139,7 @@ class Vfs_import::File_system : public Vfs::File_system
 				return;
 			}
 
-			char              buf[4096];
+			char              buf[32*1024];
 			Vfs_handle::Guard guard { dst_handle };
 			Flush_guard       flush { env.io(), *dst_handle };
 			Readonly_file::At at    { };
