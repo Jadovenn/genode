@@ -1,0 +1,5 @@
+proc run_deploy { source dest } {
+	puts "local deploy from $source to [run_dir]/genode/$dest"
+	exec cp -vvrf $source [run_dir]/genode/$dest
+	return true
+}

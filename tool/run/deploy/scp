@@ -1,0 +1,47 @@
+# Deploy files to the target by scp
+#
+# \param --deploy_scp_host       network address of the target
+# \param --deploy_scp_port       ssh port of the target
+# \param --deploy_scp_user       user to login on the target
+# \param --deploy_scp_password   password to login on the target
+#                                this may be empty to use public key auth
+# \param --deploy_scp_base_dir   base deploy path on the target
+#
+
+
+proc deploy_scp_host { } {
+	return [get_cmd_arg_first --deploy_scp_host "localhost"]
+}
+
+proc deploy_scp_port { } {
+	return [get_cmd_arg_first --deploy_scp_port 22]
+}
+
+proc deploy_scp_user { } {
+	return [get_cmd_arg_first --deploy_scp_user "root"]
+}
+
+proc deploy_scp_password { } {
+	return [get_cmd_arg_first --deploy_scp_password ""]
+}
+
+proc deploy_scp_base_dir { } {
+	return [get_cmd_arg_first --deploy_scp_base_dir "."]
+}
+
+proc run_deploy { source dest } {
+	set host [deploy_scp_host]
+	set port [deploy_scp_port]
+	set user [deploy_scp_user]
+	set password [deploy_scp_password]
+	set base_dir [deploy_scp_base_dir]
+
+	if { $password == "" } {
+		exec scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P ${port} -r ${source} ${user}@${host}:${base_dir}/${dest}
+	} else {
+		exec sshpass -p${password} scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P ${port} -r ${source} ${user}@${host}:${base_dir}/${dest}
+	}
+ 
+	return true
+}
+
