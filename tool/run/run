@@ -792,7 +792,7 @@ proc wait_for_output { wait_for_re timeout_value running_spawn_id } {
 		-i $running_spawn_id $platform_msg { puts stderr "Error: platform rebooted unexpectedly"; exit -4 }
 		-i $running_spawn_id -re $wait_for_re { }
 		eof     { puts stderr "Error: Spawned process died unexpectedly"; exit -3 }
-		timeout { puts stderr "Error: Test execution timed out"; exit -2 }
+		timeout { puts stderr "Error: Test execution timed out while waiting for \"$wait_for_re\""; exit -2 }
 	}
 	append output $expect_out(buffer)
 }
