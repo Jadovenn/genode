@@ -120,3 +120,55 @@ Port_allocator_guard::Port_allocator_guard(Port_allocator &port_alloc,
 	}
 }
 
+
+
+/********************
+ ** Jitter_entropy **
+ ********************/
+
+Jitter_entropy::Jitter_entropy(Genode::Allocator &alloc)
+{
+	jitterentropy_init(alloc);
+	int err = jent_entropy_init();
+	if (err) {
+		warning("init jitterentropy failed");
+		return;
+	}
+
+	/* use the default behaviour as specified in jitterentropy(3) */
+	_ec_stir = jent_entropy_collector_alloc(0, 0);
+	if (!_ec_stir) {
+		warning("allocate jitterentropy failed");
+		return;
+	}
+}
+
+
+Jitter_entropy::~Jitter_entropy()
+{
+	if (_ec_stir)
+		jent_entropy_collector_free(_ec_stir);
+}
+
+
+ssize_t Jitter_entropy::read(char *data, size_t len) const
+{
+	if (_ec_stir) {
+		return jent_read_entropy(_ec_stir, data, len);
+	} else {
+		return -1;
+	}
+}
+
+
+uint16_t Jitter_entropy::read() const
+{
+	enum { MAX_BUF_LEN = 2 };
+	char buffer[MAX_BUF_LEN];
+	if (read(buffer, sizeof(buffer)) < 0) {
+		warning("could not read entropy");
+		return 0;
+	}
+	return Genode::uint16_t(static_cast<unsigned char>(buffer[0]) << 8 |
+	                        static_cast<unsigned char>(buffer[1]));
+}

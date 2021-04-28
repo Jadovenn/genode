@@ -1,6 +1,6 @@
 TARGET = nic_router
 
-LIBS += base net
+LIBS += base net jitterentropy
 
 SRC_CC += \
 	arp_waiter.cc \

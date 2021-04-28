@@ -5,3 +5,4 @@ nic_session
 uplink_session
 timer_session
 report_session
+jitterentropy

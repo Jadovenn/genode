@@ -1,6 +1,6 @@
 TARGET = test-nic_router_dhcp-manager
 
-LIBS += base
+LIBS += base jitterentropy
 
 SRC_CC += main.cc ipv4_address_prefix.cc dns.cc xml_node.cc
 

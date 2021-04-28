@@ -111,9 +111,9 @@ class Net::Domain : public List<Domain>::Element,
 		Transport_rule_list                   _tcp_rules            { };
 		Transport_rule_list                   _udp_rules            { };
 		Ip_rule_list                          _icmp_rules           { };
-		Port_allocator                        _tcp_port_alloc       { };
-		Port_allocator                        _udp_port_alloc       { };
-		Port_allocator                        _icmp_port_alloc      { };
+		Port_allocator                        _tcp_port_alloc       { _alloc };
+		Port_allocator                        _udp_port_alloc       { _alloc };
+		Port_allocator                        _icmp_port_alloc      { _alloc };
 		Nat_rule_tree                         _nat_rules            { };
 		Interface_list                        _interfaces           { };
 		unsigned long                         _interface_cnt        { 0 };
