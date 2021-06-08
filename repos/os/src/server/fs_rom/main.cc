@@ -107,6 +107,8 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 		 */
 		bool _watching_file = false;
 
+		bool _error_on_read = false;
+
 		/*
 		 * Exception
 		 */
@@ -265,11 +267,13 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 			if (_file_size == 0)
 				return false;
 
+			Version local_version = _curr_version;
+			_error_on_read = false;
 			/* read content from file */
 			Tx_source &source = *_fs.tx();
-			while (_file_seek < _file_size) {
+			while (_file_seek < _file_size && !_error_on_read && local_version.value == _curr_version.value) {
 				/* if we cannot submit then process acknowledgements */
-				while (!source.ready_to_submit())
+				while (!source.ready_to_submit() && local_version.value == _curr_version.value)
 					_env.ep().wait_and_dispatch_one_io_signal();
 
 				size_t chunk_size = min((size_t)(_file_size - _file_seek),
@@ -287,13 +291,20 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 				 * for the read request (indicated by a change of the seek
 				 * position).
 				 */
+//				File_system::seek_off_t const orig_file_seek = _file_seek;
+//				while (_file_seek == orig_file_seek)
 				File_system::seek_off_t const orig_file_seek = _file_seek;
-				while (_file_seek == orig_file_seek)
+				while (_file_seek == orig_file_seek && !_error_on_read && local_version.value == _curr_version.value)
 					_env.ep().wait_and_dispatch_one_io_signal();
 			}
-
-			_handed_out_version = _curr_version;
-			return true;
+			if (_error_on_read || local_version.value != _curr_version.value) {
+				memset(_file_ds.local_addr<char>(), 0x00, _file_ds.size());
+				_file_size = 0;
+				return false;
+			} else {
+				_handed_out_version = _curr_version;
+				return true;
+			}
 		}
 
 		bool _try_read_dataspace(bool update_only)
@@ -342,6 +353,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 					if (_file_size > 0) {
 						memset(_file_ds.local_addr<char>(), 0x00, (size_t)_file_size);
 						_file_size = 0;
+						Genode::warning("dataspace outdated");
 						Signal_transmitter(_sigh).submit();
 					}
 				}
@@ -459,6 +471,12 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 					error("bad packet seek position");
 					_file_ds.realloc(&_env.ram(), 0);
 					_file_seek = 0;
+					return;
+				}
+
+				if (packet.length() == 0 && _file_seek < _file_size) {
+					Genode::error("Empty READ packet while expecting ", _file_size - _file_seek, " bytes");
+					_error_on_read = true;
 					return;
 				}
 
