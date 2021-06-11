@@ -1,3 +1,7 @@
+ifeq ($(filter-out $(SPECS),armhf_v7a),)
+	INC_DIR += $(BASE_DIR)/include/spec/armhf_v7a
+endif
+
 SANITIZER_PORT_DIR := $(call select_from_ports,sanitizer)
 
 SANITIZER_DIR := $(SANITIZER_PORT_DIR)/src/lib/sanitizer

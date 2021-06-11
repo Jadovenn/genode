@@ -1,3 +1,7 @@
+ifeq ($(filter-out $(SPECS),armhf_v7a),)
+	INC_DIR += $(BASE_DIR)/include/spec/armhf_v7a
+endif
+
 HOST_INC_DIR += $(dir $(call select_from_repositories,src/lib/syscall/linux_syscalls.h))
 HOST_INC_DIR += $(dir $(CUSTOM_HOST_CC))/../$(shell $(CUSTOM_HOST_CC) -dumpmachine)/libc/usr/include
 HOST_INC_DIR += /usr/include

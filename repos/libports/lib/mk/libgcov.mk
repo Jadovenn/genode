@@ -46,6 +46,10 @@ INC_DIR += $(GCOV_DIR)/include \
            $(GCOV_DIR)/gcc \
            $(REP_DIR)/src/lib/gcov/libc
 
+ifeq ($(filter-out $(SPECS),armhf_v7a),)
+	INC_DIR += $(BASE_DIR)/include/spec/armhf_v7a
+endif
+
 ifeq ($(filter-out $(SPECS),arm),)
 	INC_DIR += $(GCOV_PORT_DIR)/include/arm/gcc \
 	           $(GCOV_PORT_DIR)/include/arm/libgcc

@@ -45,6 +45,10 @@ include $(BASE_DIR)/mk/global.mk
 LIBCXX_GCC = $(shell $(CUSTOM_CXX_LIB) $(CC_MARCH) -print-file-name=libsupc++.a) \
              $(shell $(CUSTOM_CXX_LIB) $(CC_MARCH) -print-file-name=libgcc_eh.a || true)
 
+ifeq ($(filter-out $(SPECS),armhf_v7a),)
+	INC_DIR += $(BASE_DIR)/include/spec/armhf_v7a
+endif
+
 #
 # Dummy target used by the build system
 #

@@ -31,6 +31,10 @@ SRC_CC += env_session_id_space.cc
 SRC_CC += stack_protector.cc
 SRC_CC += xml_generator.cc
 
+ifeq ($(filter-out $(SPECS),armhf_v7a),)
+	INC_DIR += $(BASE_DIR)/include/spec/armhf_v7a
+endif
+
 INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 
 vpath %.cc  $(REP_DIR)/src/lib/base

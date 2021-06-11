@@ -1,7 +1,7 @@
 content: include mk/spec lib LICENSE
 
 # architectures, for which a 'trace/timestamp.h' header is available
-ARCHS := riscv arm_v6 arm_v7 arm_64 x86_32 x86_64
+ARCHS := riscv arm_v6 armhf_v7a arm_v7 arm_64 x86_32 x86_64
 
 include:
 	mkdir -p include
@@ -10,9 +10,11 @@ include:
 LIB_MK_FILES := base.mk ld.mk ldso_so_support.mk
 
 lib:
-	mkdir -p lib/mk lib/symbols
+	mkdir -p lib/import lib/mk lib/symbols
 	cp $(addprefix $(REP_DIR)/lib/mk/,$(LIB_MK_FILES)) lib/mk/
 	cp $(REP_DIR)/lib/symbols/ld lib/symbols/
+	cp $(REP_DIR)/lib/import/* lib/import/
+	touch lib/mk/config.mk
 	sed -i "/KERNEL/d" lib/mk/ld.mk
 
 SPECS := x86_32 x86_64 32bit 64bit

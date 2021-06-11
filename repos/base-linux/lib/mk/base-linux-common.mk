@@ -4,6 +4,10 @@
 # \date   2013-02-14
 #
 
+ifeq ($(filter-out $(SPECS),armhf_v7a),)
+	INC_DIR += $(BASE_DIR)/include/spec/armhf_v7a
+endif
+
 include $(BASE_DIR)/lib/mk/base-common.inc
 
 LIBS += syscall-linux

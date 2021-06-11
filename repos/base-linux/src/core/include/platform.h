@@ -154,7 +154,7 @@ class Core::Platform : public Platform_generic
 		 * Hence, we define the limit somewhat arbitrary on Linux and
 		 * accept that scenarios may break when reaching core's fd limit.
 		 */
-		size_t max_caps() const override { return 20000; }
+		size_t max_caps() const override { return 131072; }
 
 		void wait_for_exit() override;
 };

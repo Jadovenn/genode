@@ -41,6 +41,10 @@ INC_DIR      += $(REP_DIR)/src/core/include \
                 $(REP_DIR)/src/include \
                 $(BASE_DIR)/src/include
 
+ifeq ($(filter-out $(SPECS),armhf_v7a),)
+	CC_CXX_WARN_STRICT_CONVERSION :=
+endif
+
 vpath main.cc                      $(GEN_CORE_DIR)
 vpath pd_session_component.cc      $(GEN_CORE_DIR)
 vpath core_log.cc                  $(GEN_CORE_DIR)

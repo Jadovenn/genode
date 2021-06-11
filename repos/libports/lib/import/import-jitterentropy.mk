@@ -4,6 +4,9 @@ else ifeq ($(filter-out $(SPECS),x86_64),)
 	TARGET_CPUARCH=x86_64
 else ifeq ($(filter-out $(SPECS),arm_v6),)
 	TARGET_CPUARCH=arm_v6
+else ifeq ($(filter-out $(SPECS),armhf_v7a),)
+	TARGET_CPUARCH=armhf_v7a
+	INC_DIR += $(BASE_DIR)/include/spec/armhf_v7a
 else ifeq ($(filter-out $(SPECS),arm_v7),)
 	TARGET_CPUARCH=arm_v7
 else ifeq ($(filter-out $(SPECS),arm_v8),)

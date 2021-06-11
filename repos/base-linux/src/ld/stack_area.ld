@@ -24,8 +24,10 @@ SECTIONS
 	. = 0x40000000; /* 1GB */
 	_stack_area_start = .;
 
+	. = 0x4E000000;
+
 	/*
 	 * 256 MB
 	 */
-	.stack_area : { . += 0x10000000; } : stack_area
+	.stack_area : { . += 0x02000000; } : stack_area
 }

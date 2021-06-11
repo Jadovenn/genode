@@ -175,6 +175,8 @@ class Filter
 					break;
 				case SCMP_ARCH_ARM:
 					 {
+						_add_allow_rule(SCMP_SYS(clock_gettime));
+
 						/* The tgkill syscall must be made safe by restricting parameters.
 						 * Genode uses LX_SIGCANCEL alias SIGRTMIN to cancel threads
 						 * the 0xCAFEAFFE will be replaced with the process ID to restrict

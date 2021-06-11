@@ -15,6 +15,7 @@ help:
 	$(ECHO) "--- available commands ---"
 	$(ECHO) "x86         - create tool chain for x86"
 	$(ECHO) "arm         - create tool chain for arm"
+	$(ECHO) "armhf       - create tool chain for armhf (hard-float ABI)"
 	$(ECHO) "aarch64     - create tool chain for aarch64/arm64"
 	$(ECHO) "riscv       - create tool chain for riscv"
 	$(ECHO) "clean       - clean everything except downloaded archives"
@@ -32,7 +33,7 @@ help:
 # User interface
 #
 
-SUPPORTED_PLATFORMS := x86 arm riscv aarch64
+SUPPORTED_PLATFORMS := x86 arm armhf riscv aarch64
 ENABLE_FEATURES     ?= c c++ ada go gdb
 
 PLATFORM := $(firstword $(filter $(SUPPORTED_PLATFORMS),$(MAKECMDGOALS)))
@@ -181,8 +182,11 @@ LOCAL_INSTALL_LOCATION = $(BUILD_LOCATION)/install
 
 TARGET_NAME_x86        = x86_64-pc-elf
 TARGET_NAME_arm        = arm-none-eabi
+TARGET_NAME_armhf      = arm-none-eabihf
 TARGET_NAME_riscv      = riscv64-unknown-elf
 TARGET_NAME_aarch64    = aarch64-none-elf
+
+GCC_CONFIG_armhf       = --with-arch=armv7-a --with-float=hard --with-fpu=vfp
 
 GCC_CONFIG_riscv       = --with-arch=rv64imac_zicsr_zifencei --with-abi=lp64
 INSTALL_riscv          = cd $(INSTALL_LOCATION)/lib/gcc/riscv64-unknown-elf/$(GCC_VERSION)/rv64imac/lp64 && \

@@ -192,10 +192,17 @@ inline void lx_boost_rlimit()
 {
 	rlimit rlimit { };
 
+#ifdef SYS_getrlimit
 	if (int const res = (int)lx_syscall(SYS_getrlimit, RLIMIT_NOFILE, &rlimit)) {
 		Genode::warning("unable to obtain RLIMIT_NOFILE (", res, "), keeping limit unchanged");
 		return;
 	}
+#else
+	if (int const res = lx_syscall(SYS_ugetrlimit, RLIMIT_NOFILE, &rlimit)) {
+		Genode::warning("unable to obtain RLIMIT_NOFILE (", res, "), keeping limit unchanged");
+		return;
+	}
+#endif
 
 	/* increase soft limit to hard limit */
 	rlimit.rlim_cur = rlimit.rlim_max;

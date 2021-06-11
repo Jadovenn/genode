@@ -10,7 +10,7 @@ MAKEOVERRIDES =
 
 PLATFORM = $(MAKECMDGOALS)
 
-PLATFORMS = arm_v6 arm_v7a arm_v8a riscv x86_32 x86_64
+PLATFORMS = arm_v6 arm_v7a arm_v8a riscv x86_32 x86_64 linux armhf_v7a
 
 usage:
 	@echo
@@ -94,6 +94,8 @@ BUILD_CONF(arm_v8a) := run_arm_v8 run_boot_dir repos repos_arm_v8
 BUILD_CONF(riscv)   := run_riscv run_boot_dir repos repos_riscv
 BUILD_CONF(x86_32)  := run_x86_32 $(BUILD_CONF_X86)
 BUILD_CONF(x86_64)  := run_x86_64 $(BUILD_CONF_X86)
+BUILD_CONF(linux)   := run_kernel_linux repos
+BUILD_CONF(armhf_v7a) := $(BUILD_CONF_ARM_V7)
 
 message: $(BUILD_DIR)/etc/build.conf
 $(BUILD_DIR)/etc/build.conf:
@@ -117,12 +119,14 @@ $(BUILD_DIR)/etc/specs.conf: $(BUILD_DIR)/etc
 # SPECS definitions
 #
 
-SPECS(arm_v6)  := arm_v6
-SPECS(arm_v7a) := arm_v7a
-SPECS(arm_v8a) := arm_v8a
-SPECS(riscv)   := riscv
-SPECS(x86_32)  := x86_32
-SPECS(x86_64)  := x86_64
+SPECS(arm_v6)          := arm_v6
+SPECS(arm_v7a)         := arm_v7a
+SPECS(arm_v8a)         := arm_v8a
+SPECS(riscv)           := riscv
+SPECS(x86_32)          := x86_32
+SPECS(x86_64)          := x86_64
+SPECS(armhf_v7a)       := armhf_v7a
+SPECS(linux)           := $(HOST_SPEC_ARCH)
 
 ifneq (${SPECS(${PLATFORM})},)
 message: $(BUILD_DIR)/etc/specs.conf

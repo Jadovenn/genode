@@ -1,6 +1,6 @@
-content: lib/mk/ldso_so_support.mk src/lib/ldso/so_support.c LICENSE
+content: lib/import/import-ldso_so_support.mk lib/mk/ldso_so_support.mk src/lib/ldso/so_support.c LICENSE
 
-lib/mk/ldso_so_support.mk src/lib/ldso/so_support.c:
+lib/import/import-ldso_so_support.mk lib/mk/ldso_so_support.mk src/lib/ldso/so_support.c:
 	$(mirror_from_rep_dir)
 
 LICENSE:

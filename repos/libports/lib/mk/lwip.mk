@@ -9,6 +9,10 @@ LWIPDIR := $(LWIP_PORT_DIR)/src/lib/lwip/src
 
 -include $(LWIPDIR)/Filelists.mk
 
+ifeq ($(filter-out $(SPECS),armhf_v7a),)
+	INC_DIR += $(BASE_DIR)/include/spec/armhf_v7a
+endif
+
 # Core files
 SRC_C += $(notdir $(COREFILES))
 
