@@ -33,7 +33,7 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 		/* count the number of arguments and environment variables */
 		node.for_each_sub_node([&] (Xml_node const &node) {
 			/* check if the 'value' attribute exists */
-			if (node.has_type("arg") && node.has_attribute("value"))
+			if ((node.has_type("arg") && node.has_attribute("value")) || node.has_type("arg-raw"))
 				++argc;
 			else
 			if (node.has_type("env") && node.has_attribute("key") && node.has_attribute("value"))
@@ -72,6 +72,14 @@ static void populate_args_and_env(Libc::Env &env, int &argc, char **&argv, char 
 
 					Genode::copy_cstring(argv[arg_i], start, size);
 				});
+
+				++arg_i;
+			}
+			else if (node.has_type("arg-raw")) {
+				size_t const original_size = node.content_size();
+				argv[arg_i] = (char *)malloc(original_size + 1);
+				size_t const decoded_size = node.decoded_content(argv[arg_i], original_size);
+				argv[arg_i][decoded_size] = 0;
 
 				++arg_i;
 			}
