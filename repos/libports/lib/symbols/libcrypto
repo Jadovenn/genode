@@ -3377,6 +3377,7 @@ TXT_DB_read T
 TXT_DB_write T
 UINT32_it D 56
 UINT64_it D 56
+UI_OpenSSL T
 UI_UTIL_read_pw T
 UI_UTIL_read_pw_string T
 UI_UTIL_wrap_read_pem_callback T
