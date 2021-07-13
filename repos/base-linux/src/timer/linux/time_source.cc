@@ -22,8 +22,10 @@
 using namespace Genode;
 
 
-inline int lx_gettimeofday(struct timeval *tv, struct timeval *tz) {
-	return (int)lx_syscall(SYS_gettimeofday, tv, tz); }
+#define CLOCK_MONOTONIC (1)
+
+inline int lx_clock_gettime(struct timespec *ts) {
+	return (int)lx_syscall(SYS_clock_gettime, CLOCK_MONOTONIC, ts); }
 
 
 Microseconds Timer::Time_source::max_timeout() const
@@ -35,9 +37,9 @@ Microseconds Timer::Time_source::max_timeout() const
 
 Duration Timer::Time_source::curr_time()
 {
-	struct timeval tv;
-	lx_gettimeofday(&tv, 0);
-	return Duration(Microseconds((uint64_t)tv.tv_sec * 1000 * 1000 + tv.tv_usec));
+	struct timespec ts;
+	lx_clock_gettime(&ts);
+	return Duration (Microseconds(static_cast<uint64_t>(ts.tv_sec) * 1000 * 1000 + ts.tv_nsec / 1000));
 }
 
 
