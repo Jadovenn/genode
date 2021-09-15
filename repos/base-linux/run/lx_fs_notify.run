@@ -25,6 +25,7 @@ build {
 	server/lx_fs
 	test/lx_fs_notify/rom_log
 	test/lx_fs_notify/file_writer
+	test/lx_fs_notify/fs_dir_watch
 }
 
 #
@@ -50,6 +51,7 @@ install_config {
 		<config>
 			<policy label_prefix="fs_rom_config" root="/lx_fs_notify"           writeable="no"/>
 			<policy label_prefix="fs_rom_test"   root="/lx_fs_notify/test"      writeable="no"/>
+			<policy label_suffix="fs_dir_watch"  root="/lx_fs_notify/dir_watch" writeable="no"/>
 			<policy label_suffix="templates"     root="/lx_fs_notify/templates" writeable="yes"/>
 			<policy label_suffix="test"          root="/lx_fs_notify/test"      writeable="yes"/>
 		</config>
@@ -172,9 +174,36 @@ set init_run_write_test {
 </config>
 }
 
+set init_run_directory_watch_test {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+		<service name="Timer"/>
+		<service name="File_system"/>
+	</parent-provides>
+	<default caps="100"/>
+
+	<start name="test-fs_dir_watch" caps="150" version="1">
+		<resource name="RAM" quantum="2M"/>
+		<config>
+			<vfs> <fs/> </vfs>
+		</config>
+		<route>
+			<service name="File_system"> <parent label="fs_dir_watch"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
 set test_iterations  10
-set input_file_name  "bin/lx_fs_notify/templates/infile.txt"
-set output_file_name "bin/lx_fs_notify/test/outfile.txt"
+set lx_fs_notify_dir "bin/lx_fs_notify"
+set input_file_name  "$lx_fs_notify_dir/templates/infile.txt"
+set output_file_name "$lx_fs_notify_dir/test/outfile.txt"
 
 #
 # print text in colors
@@ -189,7 +218,8 @@ proc color {foreground text} {
 # write the desired config for the sub init
 #
 proc write_init_config { config } {
-	set fd [open "bin/lx_fs_notify/init.config" "w"]
+	global lx_fs_notify_dir
+	set fd [open "$lx_fs_notify_dir/init.config" "w"]
 	puts $fd $config
 	close $fd
 }
@@ -198,7 +228,8 @@ proc write_init_config { config } {
 # clear the content of the init config
 #
 proc write_empty_init_config { } {
-	set fd [open "bin/lx_fs_notify/init.config" "w"]
+	global lx_fs_notify_dir
+	set fd [open "$lx_fs_notify_dir/init.config" "w"]
 	puts $fd ""
 	close $fd
 }
@@ -225,6 +256,23 @@ proc wait_file_changed { file_size additional_filter } {
 		expect {
 			-i $spawn_id -re $wait_re { }
 			timeout { }
+		}
+	}
+}
+
+#
+# wait for an update to the directory
+#
+proc wait_directory_changed { } {
+	global spawn_id
+
+	puts [color 3 "wait for directory content change"]
+	set timeout 5
+	expect {
+		-i $spawn_id -re ".*init -> test-fs_dir_watch.*directory content changed.*\n" { }
+		timeout {
+			puts [color 1 "ERROR no directory change"]
+			exit -4
 		}
 	}
 }
@@ -275,11 +323,11 @@ proc rom_size { file_size } {
 #
 # Create test-directory structure
 #
-exec rm -Rf bin/lx_fs_notify
-exec mkdir -p bin/lx_fs_notify/templates
-exec mkdir -p bin/lx_fs_notify/test
-exec mkdir -p bin/lx_fs_notify/mnt
-
+exec rm -Rf $lx_fs_notify_dir
+exec mkdir -p $lx_fs_notify_dir/templates
+exec mkdir -p $lx_fs_notify_dir/test
+exec mkdir -p $lx_fs_notify_dir/mnt
+exec mkdir -p $lx_fs_notify_dir/dir_watch/test
 #
 # Boot modules
 #
@@ -409,6 +457,22 @@ proc test_shell_rm { test_iterations output_file_name } {
 	}
 }
 
+proc test_watch_directory { init_run_directory_watch_test } {
+	global lx_fs_notify_dir
+	puts [color 2 ">>> run watch directory test"]
+	write_init_config $init_run_directory_watch_test
+	run_genode_until ".*wait for directory content to change.*\n" 6
+	exec touch $lx_fs_notify_dir/dir_watch/test/file.txt
+	wait_directory_changed
+	exec rm $lx_fs_notify_dir/dir_watch/test/file.txt
+	wait_directory_changed
+	exec mkdir $lx_fs_notify_dir/dir_watch/test/subdir
+	wait_directory_changed
+	exec rm -r $lx_fs_notify_dir/dir_watch/test/subdir
+	wait_directory_changed
+	write_empty_init_config
+}
+
 #
 # Execute test cases
 #
@@ -422,15 +486,16 @@ test_libc_write_in_genode      $test_iterations $init_run_write_test $input_file
 test_libc_fwrite_on_linux      $test_iterations $input_file_name $output_file_name
 test_libc_write_on_linux       $test_iterations $input_file_name $output_file_name
 test_tcl_file_copy             $test_iterations $input_file_name $output_file_name
-test_shell_cp $test_iterations $input_file_name $output_file_name
+test_shell_cp                  $test_iterations $input_file_name $output_file_name
 test_shell_mv_overwrite        $test_iterations $input_file_name $output_file_name
 test_shell_mv_rename           $test_iterations
 test_shell_mv_move_other_dir   $test_iterations
-test_shell_rm $test_iterations $output_file_name
+test_shell_rm                  $test_iterations $output_file_name
+test_watch_directory           $init_run_directory_watch_test
 
 #
 # Cleanup test-directory structure
 #
-exec rm -Rf bin/lx_fs_notify
+exec rm -Rf $lx_fs_notify_dir
 
 # vi: set ft=tcl :
