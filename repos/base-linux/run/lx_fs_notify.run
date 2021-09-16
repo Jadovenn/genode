@@ -12,20 +12,29 @@ assert_spec linux
 
 create_boot_directory
 
-import_from_depot [depot_user]/src/[base_src]
-import_from_depot [depot_user]/src/chroot
-import_from_depot [depot_user]/src/fs_rom
-import_from_depot [depot_user]/src/init
-import_from_depot [depot_user]/src/libc
-import_from_depot [depot_user]/src/stdcxx
-import_from_depot [depot_user]/src/posix
-import_from_depot [depot_user]/src/vfs
+lappend depot_archives [depot_user]/src/[base_src]
+lappend depot_archives [depot_user]/src/chroot
+lappend depot_archives [depot_user]/src/fs_rom
+lappend depot_archives [depot_user]/src/init
+lappend depot_archives [depot_user]/src/libc
+lappend depot_archives [depot_user]/src/stdcxx
+lappend depot_archives [depot_user]/src/posix
+lappend depot_archives [depot_user]/src/vfs
 
-build {
-	server/lx_fs
-	test/lx_fs_notify/rom_log
-	test/lx_fs_notify/file_writer
-	test/lx_fs_notify/fs_dir_watch
+if { [get_cmd_switch --autopilot] } {
+	lappend depot_archives [depot_user]/src/lx_fs
+} else {
+	lappend build_components server/lx_fs
+}
+
+lappend build_components test/lx_fs_notify/rom_log
+lappend build_components test/lx_fs_notify/file_writer
+lappend build_components test/lx_fs_notify/fs_dir_watch
+
+import_from_depot $depot_archives
+
+if { [llength $build_components] > 0 } {
+	build $build_components
 }
 
 #
