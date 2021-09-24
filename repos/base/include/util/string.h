@@ -159,6 +159,51 @@ namespace Genode {
 		return dst;
 	}
 
+	/**
+	 * Copy memory buffer to a potentially overlapping destination buffer
+	 *
+	 * \param dst   destination memory block
+	 * \param src   source memory block
+	 * \param size  number of bytes to move
+	 *
+	 * \return      pointer to destination memory block
+	 */
+	inline void volatile *memmove(void volatile *dst, const void *src, size_t size)
+	{
+		char *d = (char *)dst, *s = (char *)src;
+		size_t i;
+
+		if (s > d)
+			for (i = 0; i < size; i++, *d++ = *s++);
+		else
+			for (s += size - 1, d += size - 1, i = size; i-- > 0; *d-- = *s--);
+
+		return dst;
+	}
+
+
+	/**
+	 * Copy memory buffer to a potentially overlapping destination buffer
+	 *
+	 * \param dst   destination memory block
+	 * \param src   source memory block
+	 * \param size  number of bytes to move
+	 *
+	 * \return      pointer to destination memory block
+	 */
+	inline void volatile *memmove(void *dst, volatile const void *src, size_t size)
+	{
+		char *d = (char *)dst, *s = (char *)src;
+		size_t i;
+
+		if (s > d)
+			for (i = 0; i < size; i++, *d++ = *s++);
+		else
+			for (s += size - 1, d += size - 1, i = size; i-- > 0; *d-- = *s--);
+
+		return dst;
+	}
+
 
 	/**
 	 * Copy memory buffer to a non-overlapping destination buffer
@@ -183,6 +228,76 @@ namespace Genode {
 			return dst;
 
 		d += i; s += i; size -= i;
+
+		/* copy eight byte chunks */
+		for (i = size >> 3; i > 0; i--, *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++);
+
+		/* copy left over */
+		for (i = 0; i < (size & 0x7); i++, *d++ = *s++);
+
+		return dst;
+	}
+
+
+	/**
+	 * Copy memory buffer to a non-overlapping destination buffer
+	 *
+	 * \param dst   destination memory block
+	 * \param src   source memory block
+	 * \param size  number of bytes to copy
+	 *
+	 * \return      pointer to destination memory block
+	 */
+	inline void volatile *memcpy(void volatile *dst, const void *src, size_t size)
+	{
+		char *d = (char *)dst, *s = (char *)src;
+		size_t i = 0;
+
+		/* check for overlap */
+		if ((d + size > s) && (s + size > d))
+			return memmove(dst, src, size);
+
+		/* copy eight byte chunks */
+		for (i = size >> 3; i > 0; i--, *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++,
+		                                *d++ = *s++);
+
+		/* copy left over */
+		for (i = 0; i < (size & 0x7); i++, *d++ = *s++);
+
+		return dst;
+	}
+
+
+	/**
+	 * Copy memory buffer to a non-overlapping destination buffer
+	 *
+	 * \param dst   destination memory block
+	 * \param src   source memory block
+	 * \param size  number of bytes to copy
+	 *
+	 * \return      pointer to destination memory block
+	 */
+	inline void volatile *memcpy(void *dst, volatile const void *src, size_t size)
+	{
+		char *d = (char *)dst, *s = (char *)src;
+		size_t i = 0;
+
+		/* check for overlap */
+		if ((d + size > s) && (s + size > d))
+			return memmove(dst, src, size);
 
 		/* copy eight byte chunks */
 		for (i = size >> 3; i > 0; i--, *d++ = *s++,
@@ -306,6 +421,25 @@ namespace Genode {
 		for (; size; size--, d++)
 			*d = i;
 
+		return dst;
+	}
+
+
+	/**
+	 * Fill destination buffer with given value
+	 *
+	 * \param dst   destination buffer
+	 * \param i     byte value
+	 * \param size  buffer size in bytes
+	 *
+	 * The compiler attribute is needed to prevent the
+	 * generation of a 'memset()' call in the 'while' loop
+	 * with gcc 10.
+	 */
+	 __attribute((optimize("no-tree-loop-distribute-patterns")))
+	inline void volatile *memset(void volatile *dst, uint8_t i, size_t size)
+	{
+		while (size--) ((char *)dst)[size] = static_cast<char>(i);
 		return dst;
 	}
 
