@@ -36,7 +36,7 @@ class Test_lx_fs_notify::Main
 		void _update()
 		{
 			_test_rom.update();
-			log("updated ROM content: size=", strlen(_test_rom.local_addr<const char>()));
+			log("updated ROM content: size='", strlen(_test_rom.local_addr<const char>()),"'");
 		}
 
 	public:

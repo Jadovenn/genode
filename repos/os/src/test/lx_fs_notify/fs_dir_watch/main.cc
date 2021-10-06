@@ -60,7 +60,7 @@ class Test_lx_fs_notify::Main
 
 		Main(Env& env) : _env { env }
 		{
-			_fs.sigh_ack_avail(_packet_handler);
+			_fs.sigh(_packet_handler);
 
 			log("wait for directory content to change");
 		}

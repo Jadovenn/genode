@@ -28,6 +28,9 @@
 #include <streambuf>
 #include <iostream>
 
+struct Error_reading_input_stream : std::exception  { };
+struct Error_opening_output_file  : std::exception  { };
+struct Error_writing_output_file  : std::exception  { };
 
 void print_usage(const char *prg)
 {
@@ -46,7 +49,7 @@ void use_fwrite(std::string const &data, char const *out_file_name)
 {
 	FILE  *out_fp   { fopen(out_file_name, "w") };
 	if (out_fp == nullptr) {
-		exit(-88);
+		throw Error_opening_output_file { };
 	}
 
 	auto   to_write { data.size() };
@@ -68,8 +71,12 @@ void use_write(std::string const &data, char const *out_file_name)
 {
 	auto fd { open(out_file_name, O_WRONLY) };
 	if (fd < 0) {
-		exit(-99);
+		throw Error_opening_output_file { };
 	}
+
+	// open/write doesn't seem to shrink the file if
+	// the new data written is smaller than the old.
+	ftruncate(fd, 0);
 
 	auto   to_write { data.size() };
 	size_t pos      { 0 };
@@ -79,7 +86,7 @@ void use_write(std::string const &data, char const *out_file_name)
 		auto written { write(fd, data.c_str()+pos, to_write) };
 
 		if (written < 0) {
-			exit(-66);
+			throw Error_writing_output_file { };
 		}
 
 		to_write -= written;
@@ -93,6 +100,10 @@ void use_write(std::string const &data, char const *out_file_name)
 std::string read_input(char const *file_name)
 {
 	std::ifstream in_stream { file_name };
+
+	if (!in_stream.good()) {
+		throw Error_reading_input_stream { };
+	}
 
 	return std::string(std::istreambuf_iterator<char>(in_stream),
 	                   std::istreambuf_iterator<char>());

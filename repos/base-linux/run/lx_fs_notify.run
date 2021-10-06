@@ -37,6 +37,8 @@ if { [llength $build_components] > 0 } {
 	build $build_components
 }
 
+set version 1
+
 #
 # init config
 #
@@ -109,107 +111,119 @@ install_config {
 #
 # configurations for the sub init
 #
-set init_run_fwrite_test {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-		<service name="Timer"/>
-		<service name="File_system"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>
-
-	<start name="test-file_writer" caps="300" version="1">
-		<resource name="RAM" quantum="16M"/>
+proc init_run_fwrite_test { } {
+	global version
+	append config {
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<null/>
-				</dir>
-				<dir name="templates"> <fs label="templates"/> </dir>
-				<dir name="test">      <fs label="test"/> </dir>
-			</vfs>
-			<arg value="test-file_writer"/>
-			<arg value="--fwrite"/>
-			<arg value="templates/infile.txt"/>
-			<arg value="test/outfile.txt"/>
-		</config>
-	</start>
-</config>
+			<parent-provides>
+				<service name="CPU"/>
+				<service name="LOG"/>
+				<service name="PD"/>
+				<service name="RM"/>
+				<service name="ROM"/>
+				<service name="Timer"/>
+				<service name="File_system"/>
+			</parent-provides>
+			<default-route>
+				<any-service> <parent/> <any-child/> </any-service>
+			</default-route>
+			<default caps="100"/>
+			<start name="test-file_writer" caps="300" version="} $version {">
+				<resource name="RAM" quantum="16M"/>
+				<config>
+					<libc stdout="/dev/log" stderr="/dev/log"/>
+					<vfs>
+						<dir name="dev">
+							<log/>
+							<null/>
+						</dir>
+						<dir name="templates"> <fs label="templates"/> </dir>
+						<dir name="test">      <fs label="test"/> </dir>
+					</vfs>
+					<arg value="test-file_writer"/>
+					<arg value="--fwrite"/>
+					<arg value="templates/infile.txt"/>
+					<arg value="test/outfile.txt"/>
+				</config>
+			</start>
+		</config>}
+
+	incr version
+	return $config
 }
 
-set init_run_write_test {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-		<service name="Timer"/>
-		<service name="File_system"/>
-	</parent-provides>
-	<default-route>
-		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>
-
-	<start name="test-file_writer" caps="300" version="2">
-		<resource name="RAM" quantum="16M"/>
+proc init_run_write_test { } {
+	global version
+	append config {
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-			<vfs>
-				<dir name="dev">
-					<log/>
-					<null/>
-				</dir>
-				<dir name="templates"> <fs label="templates"/> </dir>
-				<dir name="test">      <fs label="test"/> </dir>
-			</vfs>
-			<arg value="test-file_writer"/>
-			<arg value="--write"/>
-			<arg value="templates/infile.txt"/>
-			<arg value="test/outfile.txt"/>
-		</config>
-	</start>
-</config>
+			<parent-provides>
+				<service name="CPU"/>
+				<service name="LOG"/>
+				<service name="PD"/>
+				<service name="RM"/>
+				<service name="ROM"/>
+				<service name="Timer"/>
+				<service name="File_system"/>
+			</parent-provides>
+			<default-route>
+				<any-service> <parent/> <any-child/> </any-service>
+			</default-route>
+			<default caps="100"/>
+			<start name="test-file_writer" caps="300" version="} $version {">
+				<resource name="RAM" quantum="16M"/>
+				<config>
+					<libc stdout="/dev/log" stderr="/dev/log"/>
+					<vfs>
+						<dir name="dev">
+							<log/>
+							<null/>
+						</dir>
+						<dir name="templates"> <fs label="templates"/> </dir>
+						<dir name="test">      <fs label="test"/> </dir>
+					</vfs>
+					<arg value="test-file_writer"/>
+					<arg value="--write"/>
+					<arg value="templates/infile.txt"/>
+					<arg value="test/outfile.txt"/>
+				</config>
+			</start>
+		</config>}
+
+	incr version
+	return $config
 }
 
-set init_run_directory_watch_test {
-<config>
-	<parent-provides>
-		<service name="CPU"/>
-		<service name="LOG"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="ROM"/>
-		<service name="Timer"/>
-		<service name="File_system"/>
-	</parent-provides>
-	<default caps="100"/>
-
-	<start name="test-fs_dir_watch" caps="150" version="1">
-		<resource name="RAM" quantum="2M"/>
+proc init_run_directory_watch_test { } {
+	global version
+	append config {
 		<config>
-			<vfs> <fs/> </vfs>
-		</config>
-		<route>
-			<service name="File_system"> <parent label="fs_dir_watch"/> </service>
-			<any-service> <parent/> </any-service>
-		</route>
-	</start>
-</config>
+			<parent-provides>
+				<service name="CPU"/>
+				<service name="LOG"/>
+				<service name="PD"/>
+				<service name="RM"/>
+				<service name="ROM"/>
+				<service name="Timer"/>
+				<service name="File_system"/>
+			</parent-provides>
+			<default caps="100"/>
+			<start name="test-fs_dir_watch" caps="150" version="} $version {">
+				<resource name="RAM" quantum="2M"/>
+				<config>
+					<vfs> <fs/> </vfs>
+				</config>
+				<route>
+					<service name="File_system"> <parent label="fs_dir_watch"/> </service>
+					<any-service> <parent/> </any-service>
+				</route>
+			</start>
+		</config>}
+
+	incr version
+	return $config
 }
 
-set test_iterations  10
+set test_iterations  50
 set lx_fs_notify_dir "bin/lx_fs_notify"
 set input_file_name  "$lx_fs_notify_dir/templates/infile.txt"
 set output_file_name "$lx_fs_notify_dir/test/outfile.txt"
@@ -252,7 +266,7 @@ proc wait_file_changed { file_size additional_filter } {
 	puts [color 3 "wait for file change with size=$file_size"]
 	set timeout 5
 	expect {
-		-i $spawn_id -re ".*init -> test-rom_log.*updated ROM content: size=$file_size.*\n" { }
+		-i $spawn_id -re ".*init -> test-rom_log.*updated ROM content: size='$file_size'.*\n" { }
 		timeout {
 			puts [color 1 "ERROR no file change or wrong file size reported. expected size was $file_size"]
 			exit -4
@@ -260,10 +274,9 @@ proc wait_file_changed { file_size additional_filter } {
 	}
 
 	if { $additional_filter != {} } {
-		set wait_re ".*$additional_filter\n"
 		set timeout 3
 		expect {
-			-i $spawn_id -re $wait_re { }
+			-i $spawn_id -re ".*$additional_filter.*" { }
 			timeout { }
 		}
 	}
@@ -287,23 +300,10 @@ proc wait_directory_changed { } {
 }
 
 #
-# wait for a defined time
-#
-proc wait_and_consume_log { delay_sec } {
-	global spawn_id
-
-	set timeout $delay_sec
-	expect {
-		-i $spawn_id -re { text that never is printed during the test } { }
-		timeout { }
-	}
-	after 10
-}
-
-#
 # create the input file for a test
 #
 proc create_test_file { input_file_name } {
+	exec rm -f $input_file_name
 	exec seq -w [expr int(rand()*4000)+1] > $input_file_name
 	set file_size [exec stat -c%s $input_file_name]
 	return $file_size
@@ -337,6 +337,7 @@ exec mkdir -p $lx_fs_notify_dir/templates
 exec mkdir -p $lx_fs_notify_dir/test
 exec mkdir -p $lx_fs_notify_dir/mnt
 exec mkdir -p $lx_fs_notify_dir/dir_watch/test
+exec touch $lx_fs_notify_dir/init.config
 #
 # Boot modules
 #
@@ -351,37 +352,29 @@ exec make -C [genode_dir]/repos/os/src/test/lx_fs_notify/file_writer/
 #
 # Test cases
 #
-proc test_libc_fwrite_in_genode { test_iterations init_run_fwrite_test input_file_name output_file_name } {
+proc test_libc_fwrite_in_genode { test_iterations input_file_name output_file_name } {
 	puts [color 2 ">>> run libc fwrite test in Genode ($test_iterations iterations)"]
-	set size [create_output_file $output_file_name]
 	for { set it 0 } { $it < $test_iterations } { incr it } {
 		set size [create_test_file $input_file_name]
-		wait_and_consume_log 1
-		write_init_config $init_run_fwrite_test
+		write_init_config [init_run_fwrite_test]
 		wait_file_changed $size {child "test-file_writer" exited with exit value 0}
-		write_empty_init_config
 	}
 }
 
-proc test_libc_write_in_genode { test_iterations init_run_write_test input_file_name output_file_name } {
+proc test_libc_write_in_genode { test_iterations input_file_name output_file_name } {
 	puts [color 2 ">>> run libc write test in Genode ($test_iterations iterations)"]
-	set size [create_output_file $output_file_name]
 	for { set it 0 } { $it < $test_iterations } { incr it } {
-		set size [expr max([create_test_file $input_file_name], $size)]
-		wait_and_consume_log 1
-		write_init_config $init_run_write_test
+		set size [create_test_file $input_file_name]
+		write_init_config [init_run_write_test]
 		wait_file_changed $size {child "test-file_writer" exited with exit value 0}
-		write_empty_init_config
 	}
 }
 
 proc test_libc_fwrite_on_linux { test_iterations input_file_name output_file_name } {
 	puts [color 2 ">>> run libc fwrite test on Linux ($test_iterations iterations)"]
 	write_empty_init_config
-	create_output_file $output_file_name
 	for { set it 0 } { $it < $test_iterations } { incr it } {
 		set size [create_test_file $input_file_name]
-		wait_and_consume_log 1
 		exec /tmp/bin/file_writer --fwrite [run_dir]/genode/lx_fs_notify/templates/infile.txt [run_dir]/genode/lx_fs_notify/test/outfile.txt
 		wait_file_changed $size {}
 	}
@@ -392,8 +385,7 @@ proc test_libc_write_on_linux { test_iterations input_file_name output_file_name
 	write_empty_init_config
 	set size [create_output_file $output_file_name]
 	for { set it 0 } { $it < $test_iterations } { incr it } {
-		set size [expr max([create_test_file $input_file_name], $size)]
-		wait_and_consume_log 1
+		set size [create_test_file $input_file_name]
 		exec /tmp/bin/file_writer --write [run_dir]/genode/lx_fs_notify/templates/infile.txt [run_dir]/genode/lx_fs_notify/test/outfile.txt
 		wait_file_changed $size {}
 	}
@@ -466,10 +458,10 @@ proc test_shell_rm { test_iterations output_file_name } {
 	}
 }
 
-proc test_watch_directory { init_run_directory_watch_test } {
+proc test_watch_directory { } {
 	global lx_fs_notify_dir
 	puts [color 2 ">>> run watch directory test"]
-	write_init_config $init_run_directory_watch_test
+	write_init_config [init_run_directory_watch_test]
 	run_genode_until ".*wait for directory content to change.*\n" 6
 	exec touch $lx_fs_notify_dir/dir_watch/test/file.txt
 	wait_directory_changed
@@ -488,10 +480,10 @@ proc test_watch_directory { init_run_directory_watch_test } {
 # wait until the test program has started
 run_genode_until ".*wait for ROM update.*\n" 6
 set spawn_id [output_spawn_id]
-wait_and_consume_log 3
+after 2000
 
-test_libc_fwrite_in_genode     $test_iterations $init_run_fwrite_test $input_file_name $output_file_name
-test_libc_write_in_genode      $test_iterations $init_run_write_test $input_file_name $output_file_name
+test_libc_fwrite_in_genode     $test_iterations $input_file_name $output_file_name
+test_libc_write_in_genode      $test_iterations $input_file_name $output_file_name
 test_libc_fwrite_on_linux      $test_iterations $input_file_name $output_file_name
 test_libc_write_on_linux       $test_iterations $input_file_name $output_file_name
 test_tcl_file_copy             $test_iterations $input_file_name $output_file_name
@@ -500,11 +492,6 @@ test_shell_mv_overwrite        $test_iterations $input_file_name $output_file_na
 test_shell_mv_rename           $test_iterations
 test_shell_mv_move_other_dir   $test_iterations
 test_shell_rm                  $test_iterations $output_file_name
-test_watch_directory           $init_run_directory_watch_test
-
-#
-# Cleanup test-directory structure
-#
-exec rm -Rf $lx_fs_notify_dir
+test_watch_directory
 
 # vi: set ft=tcl :
