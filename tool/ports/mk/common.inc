@@ -21,6 +21,7 @@ DEFAULT_COL ?= \x1b[0m
 MSG_PREFIX_TXT := $(DARK_COL)$(notdir $(PORT:.port=))  $(DEFAULT_COL)
 MSG_PREFIX     := $(ECHO) "$(MSG_PREFIX_TXT)"
 MSG_DOWNLOAD   := $(MSG_PREFIX)"download "
+MSG_DOWNLOAD_CI:= $(MSG_PREFIX)"downloaded from "
 MSG_APPLY      := $(MSG_PREFIX)"apply "
 MSG_UPDATE     := $(MSG_PREFIX)"update "
 MSG_INSTALL    := $(MSG_PREFIX)"install "

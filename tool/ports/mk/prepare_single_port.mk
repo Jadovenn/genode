@@ -14,6 +14,9 @@ export GENODE_CONTRIB_CACHE ?= $(GENODE_DIR)/contrib/cache
 include $(GENODE_DIR)/tool/ports/mk/front_end.inc
 include $(GENODE_DIR)/tool/ports/mk/check_port_arg.inc
 
+_package_url := $(CI_API_V4_URL)/projects/$(CI_PROJECT_ID)/packages/generic/contrib.$(PORT_NAME)/$(HASH)/contrib.$(PORT_NAME).tar.xz
+_download := $(shell curl --silent --header "JOB-TOKEN: $(CI_JOB_TOKEN)" $(_package_url) | tar xJf - -C $(CONTRIB_DIR) 1>&2 2> /dev/null; echo $$?)
+
 ifeq ($(HASH),)
 $(TARGET): nonexisting_hash
 nonexisting_hash:
@@ -23,10 +26,7 @@ endif
 #
 # Default rule that triggers the actual preparation steps
 #
-$(TARGET): _check_integrity _create_archive
-
-_create_archive : _install_in_port_dir
-	$(VERBOSE)(test -f "$(PORT_DIR).tar.xz" || tar cJf "$(PORT_DIR).tar.xz" -C $(CONTRIB_DIR) --exclude="*/.git" $(notdir $(PORT_DIR)))
+$(TARGET): _check_integrity
 
 _check_integrity : _install_in_port_dir
 ifneq ($(CHECK_HASH),no)
@@ -38,8 +38,15 @@ endif
 # During the preparatio steps, the port directory is renamed. We use the suffix
 # ".incomplete" to mark this transient state of the port directory.
 #
-_install_in_port_dir: $(PORT_DIR) _extract_archive
-ifeq ("$(wildcard $(PORT_DIR).tar.xz)","")
+_install_in_port_dir: $(PORT_DIR)
+
+ifeq ($(_download),0)
+	@$(MSG_DOWNLOAD_CI)$(_package_url)
+
+else
+	@$(ECHO) "FAILED TO DOWNLOAD FROM PACKAGE REGISTRY: $(PORT_NAME)"
+	@$(ECHO) "   _download: $(download)"
+
 	@#\
 	 # if the transient directory already exists, reuse it as it may contain\
 	 # finished steps such as downloads. By reusing it, we avoid downloading\
@@ -62,10 +69,15 @@ ifeq ("$(wildcard $(PORT_DIR).tar.xz)","")
 	 # directory to the real one.\
 	 #
 	$(VERBOSE)mv $(PORT_DIR).incomplete $(PORT_DIR)
-endif
 
-_extract_archive:
-	$(VERBOSE)(test -f "$(PORT_DIR).tar.xz" && tar xf "$(PORT_DIR).tar.xz" -C $(CONTRIB_DIR)) || true
+	#$(VERBOSE)tar cJf "$(PORT_DIR).tar.xz" -C $(CONTRIB_DIR) --exclude="*/.git" $(notdir $(PORT_DIR))
+	# FIXME: nova requires the .git directory when compiled using # tool/autopilot?!
+	$(VERBOSE)tar cJf "$(PORT_DIR).tar.xz" -C $(CONTRIB_DIR) $(notdir $(PORT_DIR))
+
+	@$(ECHO) "UPLOADING PORT TO PACKAGE REGISTRY: $(PORT_NAME)"
+	$(VERBOSE)curl --silent --header "JOB-TOKEN: $(CI_JOB_TOKEN)" --upload-file "$(PORT_DIR).tar.xz" $(_package_url) || true
+
+endif
 
 $(PORT_DIR):
 	$(VERBOSE)mkdir -p $@
