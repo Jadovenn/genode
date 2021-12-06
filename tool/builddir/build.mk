@@ -204,7 +204,10 @@ endif
 ifneq ($(STATIC_ANALYZE),)
 $(call check_tool,scan-build)
 
-MAKE := scan-build --use-c++=$(CUSTOM_CXX) --use-cc=$(CUSTOM_CC) $(MAKE)
+MAKE := scan-build --use-c++=$(CUSTOM_CXX) \
+                   --use-cc=$(CUSTOM_CC) \
+                   $(STATIC_ANALYZE) \
+                   $(MAKE)
 endif
 
 #
