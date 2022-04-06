@@ -19,6 +19,8 @@
 #include <vfs/file_system_factory.h>
 #include <vfs/vfs_handle.h>
 #include <os/path.h>
+#include <os/reporter.h>
+#include <util/reconstructible.h>
 
 extern "C" {
 #include <sys/cdefs.h>
@@ -31,6 +33,7 @@ extern "C" {
 #include <sys/mount.h>
 #include <sys/resource.h>
 #include <sys/event.h>
+#include <sys/statvfs.h>
 #include <sys/time.h>
 #include <rump/rump.h>
 #include <rump/rump_syscalls.h>
@@ -57,6 +60,56 @@ static char const *fs_types[] = { RUMP_MOUNT_CD9660, RUMP_MOUNT_EXT2FS,
                                   RUMP_MOUNT_FFS, RUMP_MOUNT_MSDOS,
                                   RUMP_MOUNT_NTFS, RUMP_MOUNT_UDF, 0 };
 
+static bool           _update_stats          { false };
+static struct statvfs _sfsp[2];
+
+namespace
+{
+
+class Rump_reporter
+{
+	private:
+		Timer::Connection                        _timer;
+		Genode::Expanding_reporter               _reporter;
+		Genode::Io_signal_handler<Rump_reporter> _handler;
+		Genode::size_t                           _delay_ms  { 0 };
+		bool                                     _first_run { true };
+
+		void _report() {
+
+			_update_stats = true;
+
+			if (_first_run) {
+				_first_run = false;
+				return;
+			}
+
+			_reporter.generate([&_sfsp](Genode::Xml_generator &xml) {
+				xml.node("partition", [&_sfsp, &xml] {
+					xml.attribute("block_size",           _sfsp[1].f_bsize);
+					xml.attribute("number_of_blocks",     _sfsp[1].f_blocks);
+					xml.attribute("free_blocks",          _sfsp[1].f_bfree);
+					xml.attribute("free_blocks_non_root", _sfsp[1].f_bavail);
+					xml.attribute("free_blocks_root",     _sfsp[1].f_bresvd);
+				});
+			});
+		}
+
+	public:
+		Rump_reporter(Genode::Env &env, Genode::Xml_node &config)
+		: _timer(env),
+		  _reporter(env, "state", "rump"),
+		  _handler(env.ep(), *this, &Rump_reporter::_report)
+		{
+			_timer.sigh(_handler);
+			enum { MICROSECONDS_IN_MILLISECONDS = 1'000 };
+			_delay_ms = config.attribute_value("delay_ms", 30000u) * MICROSECONDS_IN_MILLISECONDS;
+			_timer.trigger_periodic(_delay_ms);
+		}
+};
+
+} // anonymous namespace
+
 class Vfs::Rump_file_system : public File_system
 {
 	private:
@@ -75,6 +128,8 @@ class Vfs::Rump_file_system : public File_system
 		struct Rump_vfs_file_handle;
 		typedef Genode::List<Rump_vfs_file_handle> Rump_vfs_file_handles;
 		Rump_vfs_file_handles _file_handles;
+
+		Genode::Constructible<Rump_reporter> _reporter;
 
 		struct Rump_vfs_handle : public Vfs_handle
 		{
@@ -440,6 +495,14 @@ class Vfs::Rump_file_system : public File_system
 				Genode::error("Mounting '",fs_type,"' file system failed (",errno,")");
 				throw Genode::Exception();
 			}
+
+			if (config.has_sub_node("report")) {
+				try {
+					_reporter.construct(env.env(), config.sub_node("report"));
+				} catch (Genode::Exception const&) {
+					Genode::error("Failed to create rump reporter");
+				}
+			}
 		}
 
 		/***************************
@@ -783,8 +846,23 @@ class Vfs::Rump_file_system : public File_system
 			Rump_vfs_handle *handle =
 				static_cast<Rump_vfs_handle *>(vfs_handle);
 
-			if (handle)
-				return handle->write(src, handle->seek(), out_count);
+			if (handle) {
+				auto x { handle->write(src, handle->seek(), out_count) };
+
+				if (_update_stats) {
+					_update_stats = false;
+
+					// currently rump only can report two partiotions, because it connects to one Block session
+					uint32_t count { 2 };
+					count = rump_sys_getvfsstat(_sfsp, sizeof(_sfsp), MNT_NOWAIT);
+
+					if (count != 2) {
+						Genode::error("Rump reported ", count, " filesystems, expected: 2");
+					}
+				}
+
+				return x;
+			}
 
 			return WRITE_ERR_INVALID;
 		}
