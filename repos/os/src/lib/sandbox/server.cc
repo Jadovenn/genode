@@ -107,8 +107,10 @@ Sandbox::Server::Service::resolve_session_request(Session_label const &label)
 			if (service.child_name() == child_name && service.name() == name())
 				match = &service; });
 
-		if (!match || match->abandoned())
+		if (!match || match->abandoned()) {
+			warning("child '", child_name, "' not (yet) running when creating '", name(), "' session");
 			throw Service_not_present();
+		}
 
 		return Route { *match, target_label };
 	}
