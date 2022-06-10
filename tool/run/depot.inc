@@ -170,8 +170,7 @@ proc _current_depot_archive_version { type name } {
 	set repo [repository_contains $hash_rel_path]
 
 	if {$repo == ""} {
-		puts stderr "Error: recipe for '$type/$name' not found - unable to guess version"
-		exit 1
+		error "Error: recipe for '$type/$name' not found - unable to guess version"
 	}
 
 	set fh [open "$repo/$hash_rel_path" "RDONLY"]
