@@ -347,7 +347,8 @@ build_boot_image [list {*}[build_artifacts] lx_fs_notify]
 # build the test program for Linux
 # this wil bel located in /tmp/bin
 #
-exec make -C [genode_dir]/repos/os/src/test/lx_fs_notify/file_writer/
+set shell [exec sh -c "command -v bash"]
+exec make -C [genode_dir]/repos/os/src/test/lx_fs_notify/file_writer/ SHELL=$shell
 
 #
 # Test cases
