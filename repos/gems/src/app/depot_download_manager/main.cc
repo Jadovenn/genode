@@ -170,6 +170,19 @@ struct Depot_download_manager::Main : Import::Download_progress
 		});
 	}
 
+	void _report_done()
+	{
+		_state_reporter.generate([&] (Xml_generator &xml) {
+			_jobs.for_each([&] (Job const &job) {
+				char const *type = Archive::index(job.path) ? "index" : "archive";
+				xml.node(type, [&] () {
+					xml.attribute("path",  job.path);
+					xml.attribute("state", "done");
+				});
+			});
+		});
+	}
+
 	void _generate_init_config(Xml_generator &);
 
 	void _generate_init_config()
@@ -422,7 +435,7 @@ void Depot_download_manager::Main::_handle_query_result()
 	                   && !image_index .has_sub_node("missing");
 	if (complete) {
 		log("installation complete.");
-		_update_state_report();
+		_report_done();
 		return;
 	}
 
