@@ -131,8 +131,15 @@ class Vfs_import::File_system : public Vfs::File_system
 			auto res = env.root_dir().open(
 				path.string(), CREATE , &dst_handle, alloc);
 			if (res == OPEN_ERR_EXISTS && overwrite) {
-				res = env.root_dir().open(
-					path.string(), WRITE, &dst_handle, alloc);
+				auto unlink_res = env.root_dir().unlink(path.string());
+				if (unlink_res != UNLINK_OK) {
+					Genode::error("failed to delete file ", path, ", ", unlink_res);
+					res = env.root_dir().open(
+						path.string(), WRITE, &dst_handle, alloc);
+				} else {
+					res = env.root_dir().open(
+						path.string(), CREATE, &dst_handle, alloc);
+				}
 			}
 			if (res != OPEN_OK) {
 				Genode::warning("skipping copy of file ", path, ", ", res);
