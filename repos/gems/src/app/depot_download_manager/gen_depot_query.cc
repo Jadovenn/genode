@@ -24,6 +24,7 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 
 	xml.node("config", [&] () {
 		xml.attribute("version", version.value);
+		xml.attribute("report_errors", true);
 		typedef String<32> Arch;
 		xml.attribute("arch", installation.attribute_value("arch", Arch()));
 		xml.node("vfs", [&] () {
@@ -120,6 +121,11 @@ void Depot_download_manager::gen_depot_query_start_content(Xml_generator &xml,
 			xml.attribute("name", File_system::Session::service_name());
 			xml.node("parent", [&] () {
 				xml.attribute("label", "depot"); });
+		});
+		xml.node("service", [&] () {
+			xml.attribute("name", Report::Session::service_name());
+			xml.attribute("label", "depot_query_error");
+			xml.node("parent");
 		});
 		gen_parent_unscoped_rom_route(xml, "depot_query");
 		gen_parent_unscoped_rom_route(xml, "ld.lib.so");

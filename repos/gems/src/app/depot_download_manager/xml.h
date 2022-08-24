@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/xml_generator.h>
+#include <report_session/report_session.h>
 #include <rom_session/rom_session.h>
 #include <cpu_session/cpu_session.h>
 #include <log_session/log_session.h>
