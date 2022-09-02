@@ -35,7 +35,7 @@ static inline Libc::File_descriptor *libc_fd_to_fd(int libc_fd, const char *func
 	Libc::File_descriptor *fd =
 		Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 	if (!fd)
-		Genode::error("no plugin found for ", func_name, "(", libc_fd, ")");
+		Genode::log("no plugin found for ", func_name, "(", libc_fd, ")");
 	return fd;
 }
 
