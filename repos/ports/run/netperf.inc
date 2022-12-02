@@ -90,8 +90,8 @@ proc unique_byte_per_platform { } {
 			}
 		}
 	}
-	puts "Failed to determine unique byte for target."
-	exit -1
+	puts "warning: gapfruit targets don't get an unique number"
+	return 111;
 }
 
 proc server_data_port { } {
@@ -321,7 +321,7 @@ append  config { </wifi_config>
 	append config {
 
 	<start name="nic_drv" caps="1200" managing_system="yes">
-		<resource name="RAM" quantum="32M"/>
+		<resource name="RAM" quantum="100M"/>
 		<binary name="init"/>
 		<route>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
