@@ -120,6 +120,8 @@ class Vfs::Rump_file_system : public File_system
 
 		Vfs::Env &_env;
 
+		bool _exit_on_error;
+
 		struct Rump_vfs_dir_handle;
 		struct Rump_watch_handle;
 		typedef Genode::List<Rump_watch_handle> Rump_watch_handles;
@@ -467,7 +469,9 @@ class Vfs::Rump_file_system : public File_system
 	public:
 
 		Rump_file_system(Vfs::Env &env, Xml_node const &config)
-		: _env(env)
+		:
+			_env(env),
+			_exit_on_error(config.attribute_value("exit_on_fs_error", false))
 		{
 			typedef Genode::String<16> Fs_type;
 
@@ -493,6 +497,9 @@ class Vfs::Rump_file_system : public File_system
 			args.fspec =  (char *)GENODE_DEVICE;
 			if (rump_sys_mount(fs_type.string(), "/", opts, &args, sizeof(args)) == -1) {
 				Genode::error("Mounting '",fs_type,"' file system failed (",errno,")");
+				if (_exit_on_error) {
+					_env.env().parent().exit(errno);
+				}
 				throw Genode::Exception();
 			}
 
@@ -621,6 +628,9 @@ class Vfs::Rump_file_system : public File_system
 			case ENOSPC:       return OPEN_ERR_NO_SPACE;
 			default:
 				Genode::error(__func__, ": unhandled rump error ", errno);
+				if (_exit_on_error) {
+					_env.env().parent().exit(errno);
+				}
 				return OPEN_ERR_NO_PERM;
 			}
 
@@ -656,6 +666,9 @@ class Vfs::Rump_file_system : public File_system
 				case ENOSPC:       return OPENDIR_ERR_NO_SPACE;
 				default:
 					Genode::error(__func__, ": unhandled rump error ", errno);
+					if (_exit_on_error) {
+						_env.env().parent().exit(errno);
+					}
 					return OPENDIR_ERR_PERMISSION_DENIED;
 				}
 
@@ -671,6 +684,9 @@ class Vfs::Rump_file_system : public File_system
 			case ENOSPC:       return OPENDIR_ERR_NO_SPACE;
 			default:
 				Genode::error(__func__, ": unhandled rump error ", errno);
+				if (_exit_on_error) {
+					_env.env().parent().exit(errno);
+				}
 				return OPENDIR_ERR_PERMISSION_DENIED;
 			}
 
