@@ -25,6 +25,7 @@ edit_conf: src/lib/fatfs/source/ffconf.h
 		-e 's/define FF_MAX_SS.*/define FF_MAX_SS 4096/' \
 		-e 's/define FF_FS_EXFAT.*/define FF_FS_EXFAT 1/' \
 		-e 's/define FF_FS_NORTC.*/define FF_FS_NORTC 1/' \
+		-e 's/define FF_USE_MKFS.*/define FF_USE_MKFS 1/' \
 		-i $<
 
 src/lib/fatfs/source/ffconf.h: $(DOWNLOADS)
