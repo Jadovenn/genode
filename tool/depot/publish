@@ -142,7 +142,10 @@ $(PUBLIC_DIR)/%.zip.sig : $(PUBLIC_DIR)/%.zip
 $(PUBLIC_DIR)/%.tar.xz: $(DEPOT_DIR)/%
 	@$(ECHO) "$(DARK_COL)publish$(DEFAULT_COL) $@"
 	$(VERBOSE)test -e $(dir $@) || mkdir -p $(dir $@)
-	$(VERBOSE)tar cf - -C $(dir $<) $(notdir $<) | \
+	$(eval _content := $(addprefix $(notdir $<)/, \
+	                     $(shell test -f "$</publish_content" && cat "$</publish_content" \
+	                                                        || echo "/")))
+	$(VERBOSE)tar cf - -C $(dir $<) $(_content) | \
 	          xz --threads=$(XZ_THREADS) > $@
 
 # index file
