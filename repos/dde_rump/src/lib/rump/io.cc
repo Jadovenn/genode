@@ -224,20 +224,74 @@ class Backend
 		{
 			using namespace Block;
 
-			Block::Operation const operation {
-				.type         = (op & RUMPUSER_BIO_WRITE)
-				              ? Block::Operation::Type::WRITE
-				              : Block::Operation::Type::READ,
-				.block_number = block_number_t(offset / _info.block_size),
-				.count        = length / _info.block_size };
+			if (((offset % _info.block_size) == 0) &&
+				((length % _info.block_size) == 0)) {
+				Block::Operation const operation {
+					.type         = (op & RUMPUSER_BIO_WRITE)
+					              ? Block::Operation::Type::WRITE
+					              : Block::Operation::Type::READ,
+					.block_number = block_number_t(offset / _info.block_size),
+					.count        = length / _info.block_size };
 
-			bool const success = _synchronous_io(data, operation);
+				bool const success = _synchronous_io(data, operation);
 
-			/* sync request */
-			if (op & RUMPUSER_BIO_SYNC)
-				sync();
+				/* sync request */
+				if (op & RUMPUSER_BIO_SYNC)
+					sync();
 
-			return success;
+				return success;
+			} else if (op & RUMPUSER_BIO_WRITE) {
+				size_t block_number = offset / _info.block_size;
+				size_t block_count = length / _info.block_size + (((length % _info.block_size) > 0) ? 1 : 0);
+
+				Block::Operation const read_operation {
+					.type         = Block::Operation::Type::READ,
+					.block_number = block_number_t(block_number),
+					.count        = block_count };
+
+				char buffer[block_count * _info.block_size];
+
+				bool const read_success = _synchronous_io(buffer, read_operation);
+
+				if (!read_success) return false;
+
+				Genode::memcpy(buffer + (length % _info.block_size), data, length);
+
+				Block::Operation const write_operation {
+					.type         = Block::Operation::Type::WRITE,
+					.block_number = block_number,
+					.count        = block_count };
+
+				bool const write_success = _synchronous_io(buffer, write_operation);
+
+				/* sync request */
+				if (op & RUMPUSER_BIO_SYNC)
+					sync();
+
+				return write_success;
+			} else {
+				size_t block_number = offset / _info.block_size;
+				size_t block_count = length / _info.block_size + (((length % _info.block_size) > 0) ? 1 : 0);
+
+				Block::Operation const operation {
+					.type         = Block::Operation::Type::READ,
+					.block_number = block_number,
+					.count        = block_count };
+
+				char buffer[block_count * _info.block_size];
+
+				bool const success = _synchronous_io(buffer, operation);
+
+				if (success) {
+					Genode::memcpy(data, buffer + (offset % _info.block_size), length);
+				}
+
+				/* sync request */
+				if (op & RUMPUSER_BIO_SYNC)
+					sync();
+
+				return success;
+			}
 		}
 
 		bool blocked_for_io() const { return _blocked_for_synchronous_io > 0; }
