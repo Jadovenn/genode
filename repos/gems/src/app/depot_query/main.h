@@ -298,6 +298,9 @@ struct Depot_query::Main
 	Signal_handler<Main> _query_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
+	bool _report_errors { false };
+	Constructible<Expanding_reporter> _error_report  { };
+
 	typedef Constructible<Expanding_reporter> Constructible_reporter;
 
 	Constructible_reporter _scan_reporter         { };
@@ -392,6 +395,15 @@ struct Depot_query::Main
 		Xml_node const config = _config.xml();
 
 		_directory_cache.construct(_heap);
+
+		_report_errors = config.attribute_value("report_errors", false);
+		if (_error_report.constructed()) {
+			_error_report.destruct();
+		}
+
+		if (_report_errors) {
+			_error_report.construct(_env, "depot_query_error", "depot_query_error");
+		}
 
 		/*
 		 * Depending of the 'query' config attribute, we obtain the query

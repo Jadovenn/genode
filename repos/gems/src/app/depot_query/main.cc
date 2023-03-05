@@ -348,10 +348,28 @@ void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xm
 		});
 	}
 	catch (Directory::Nonexistent_file) {
-		warning("incomplete depot-user info for '", user, "'"); }
+		warning("incomplete depot-user info for '", user, "'");
+		if (_report_errors) {
+			_error_report->generate([&user] (Xml_generator &xml) {
+				xml.node("depot_user", [&user, &xml] () {
+					xml.attribute("name", user);
+					xml.attribute("incomplete", true);
+				});
+			});
+		}
+	}
 
 	catch (Directory::Nonexistent_directory) {
-		warning("missing depot-user info for '", user, "'"); }
+		warning("missing depot-user info for '", user, "'");
+		if (_report_errors) {
+			_error_report->generate([&user] (Xml_generator &xml) {
+				xml.node("depot_user", [&user, &xml] () {
+					xml.attribute("name", user);
+					xml.attribute("missing", true);
+				});
+			});
+		}
+	}
 }
 
 
