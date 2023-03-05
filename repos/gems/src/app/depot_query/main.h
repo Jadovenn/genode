@@ -371,6 +371,7 @@ struct Depot_query::Main
 	Archive::Path _find_rom_in_pkg(File_content const &, Rom_label const &, Recursion_limit);
 	void _gen_rom_path_nodes(Xml_generator &, Xml_node const &,
 	                         Archive::Path const &, Xml_node const &);
+	void _gen_file_system_path_nodes(Xml_generator &, Archive::Path const &, Xml_node const &);
 	void _gen_inherited_rom_path_nodes(Xml_generator &, Xml_node const &,
 	                                   Archive::Path const &, Recursion_limit);
 	void _query_blueprint(Directory::Path const &, Xml_generator &);

@@ -130,6 +130,43 @@ void Depot_query::Main::_gen_rom_path_nodes(Xml_generator       &xml,
 }
 
 
+void Depot_query::Main::_gen_file_system_path_nodes(Xml_generator       &xml,
+                                                    Archive::Path const &pkg_path,
+                                                    Xml_node      const &runtime)
+{
+	_with_file_content(pkg_path, "archives", [&] (File_content const &archives) {
+		 archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
+
+			 /* early return if archive path is not a valid file_system path */
+			try {
+					if (Archive::type(archive_path) != Archive::RAW)
+						return;
+			}
+			catch (Archive::Unknown_archive_type) { return; }
+
+			runtime.for_each_sub_node("content", [&] (Xml_node content) {
+				content.for_each_sub_node([&] (Xml_node node) {
+
+					/* skip non-file_system nodes */
+					if (!node.has_type("file_system"))
+						return;
+
+					Rom_label      const label { node.attribute_value("label", Rom_label { }) };
+					Archive::Name  const name  { Archive::name(archive_path) };
+
+					if (label == name) {
+						xml.node("file_system", [&] () {
+							xml.attribute("label", label);
+							xml.attribute("path", archive_path.string());
+						});
+					 }
+				 });
+			 });
+		 });
+	});
+}
+
+
 void Depot_query::Main::_gen_inherited_rom_path_nodes(Xml_generator       &xml,
                                                       Xml_node      const &env_xml,
                                                       Archive::Path const &pkg_path,
@@ -147,7 +184,10 @@ void Depot_query::Main::_gen_inherited_rom_path_nodes(Xml_generator       &xml,
 
 			_with_file_content(archive_path, "runtime" , [&] (File_content const &runtime) {
 				runtime.xml([&] (Xml_node node) {
-					_gen_rom_path_nodes(xml, env_xml, pkg_path, node); }); });
+					_gen_rom_path_nodes(xml, env_xml, pkg_path, node);
+					_gen_file_system_path_nodes(xml, pkg_path, node);
+				});
+			});
 
 			_gen_inherited_rom_path_nodes(xml, env_xml, archive_path, recursion_limit);
 		});
@@ -176,6 +216,7 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 			                       ? _config.xml().sub_node("env") : "<env/>";
 
 			_gen_rom_path_nodes(xml, env_xml, pkg_path, node);
+			_gen_file_system_path_nodes(xml, pkg_path, node);
 
 			_gen_inherited_rom_path_nodes(xml, env_xml, pkg_path, Recursion_limit{8});
 

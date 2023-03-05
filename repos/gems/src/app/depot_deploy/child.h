@@ -698,6 +698,25 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 			}
 		});
 	});
+
+	_pkg_xml->xml().for_each_sub_node("file_system", [&] (Xml_node node) {
+
+		using Label = Name;
+		Label const label       { node.attribute_value("label", Label()) };
+		Label const path        { node.attribute_value("path", Label()) };
+		Label const path_label  { Archive::user(path), " -> raw -> ",
+		                          Archive::name(path), " -> ",
+		                          Archive::version(path) };
+
+		xml.node("service", [&] () {
+			xml.attribute("name", "File_system");
+			xml.attribute("label_last", label);
+			xml.node("child", [&] () {
+				xml.attribute("name", "depot_raw_chroot");
+				xml.attribute("label", path_label);
+			});
+		});
+	});
 }
 
 #endif /* _CHILD_H_ */
