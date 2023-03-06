@@ -28,6 +28,7 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 		xml.node("libc", [&] {
 			xml.attribute("stdout", "/dev/log");
 			xml.attribute("stderr", "/dev/log");
+			xml.attribute("rng",    "/dev/random");
 			xml.attribute("rtc",    "/dev/rtc");
 			xml.attribute("socket", "/socket");
 		});
