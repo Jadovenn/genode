@@ -1,6 +1,7 @@
 /*
- * \brief  Depot remove
+ * \brief  Tool for deleting packages from a depot and resolving unused dependencies
  * \author Alice Domage
+ * \date   2023-06-14
  */
 
 /*
@@ -18,10 +19,10 @@
 #include <base/signal.h>
 #include <depot/archive.h>
 #include <os/reporter.h>
+#include <os/vfs.h>
 #include <util/reconstructible.h>
 #include <util/xml_node.h>
 #include <util/xml_generator.h>
-#include <os/vfs.h>
 
 
 namespace Depot_remove {
@@ -33,48 +34,47 @@ namespace Depot_remove {
 
 }
 
+
 class Depot_remove::Archive_remover
 {
 	public:
 
-		using Archive_path = Depot::Archive::Path;
-		using Path = Directory::Path;
+		using Archive_path    = Depot::Archive::Path;
+		using Registered_path = Genode::Registered_no_delete<Archive_path>;
+		using Path            = Directory::Path;
 
 
 	private:
 
-		Allocator                                   &_alloc;
-		String<32> const                             _arch;
-		Registry<Registered_no_delete<Archive_path>> _deleted_archives_registry { };
-		Registry<Registered_no_delete<Archive_path>> _pkg_to_delete             { };
-		Registry<Registered_no_delete<Archive_path>> _archive_to_delete         { };
+		Allocator                &_alloc;
+		String<32> const          _arch;
+		Registry<Registered_path> _deleted_archives  { };
+		Registry<Registered_path> _pkg_to_delete     { };
+		Registry<Registered_path> _archive_to_delete { };
 
 		void _remove_directory(Directory &depot, Path path) const
 		{
-			Directory dir { depot, path };
-
-			Registry<Registered_no_delete<Archive_path>> dirent_file_registry{ };
+			Directory                 dir { depot, path };
+			Registry<Registered_path> dirent_files { };
 
 			dir.for_each_entry([&] (auto const &entry) {
 				if (entry.name() == ".." || entry.name() == ".")
 					return;
-				else if (entry.type() == Vfs::Directory_service::Dirent_type::DIRECTORY) {
+				else if (entry.type() == Vfs::Directory_service::Dirent_type::DIRECTORY)
 					_remove_directory(depot, Directory::join(path, entry.name()));
-				}
-				else {
+				else
 					/*
 					 * Deleting file within the for_each_entry() confuses lx_fs dirent
 					 * offset computation and some files, such as 'README', is consitently
 					 * omitted, thus the unlink operation fails. Thus create a list
 					 * to delete file out of the lambda.
 					 */
-					new (_alloc) Registered_no_delete<Archive_path>(dirent_file_registry, Directory::join(path, entry.name()));
-				}
-			});
-			dirent_file_registry.for_each([&](Archive_path &sub_path) {
+					new (_alloc) Registered_path(dirent_files, Directory::join(path, entry.name())); });
+
+			dirent_files.for_each([&](Registered_path &sub_path) {
 				depot.unlink(sub_path);
-				destroy(_alloc, reinterpret_cast<Registered_no_delete<Archive_path>*>(&sub_path));
-			});
+				destroy(_alloc, &sub_path); });
+
 			depot.unlink(path);
 		}
 
@@ -82,12 +82,12 @@ class Depot_remove::Archive_remover
 		void _for_each_subdir(Directory &depot, Path const &parent_dir, FUNC fn)
 		{
 			Directory pkg { depot, parent_dir };
-			pkg.for_each_entry([&fn, &parent_dir](auto const &entry){
+
+			pkg.for_each_entry([&fn, &parent_dir](auto const &entry) {
 				if (entry.name() == ".." || entry.name() == ".")
 					return;
 				Path subdir_path { Directory::join(parent_dir, entry.name()) };
-				fn(subdir_path);
-			});
+				fn(subdir_path); });
 		}
 
 		template<typename FUNC = void(Path const &)>
@@ -98,16 +98,13 @@ class Depot_remove::Archive_remover
 				if (depot.directory_exists(pkg_path)) {
 					_for_each_subdir(depot, pkg_path, [&] (Path const &pkg_path) {
 						_for_each_subdir(depot, pkg_path, [&] (Path const &pkg_version_path) {
-							fn(pkg_version_path);
-						});
-					});
-				}
-			});
+							fn(pkg_version_path); }); }); } });
 		}
 
-		void _autoremove_pkg_and_dependencies(Directory &depot) {
+		void _autoremove_pkg_and_dependencies(Directory &depot)
+		{
 
-			/* Collect all archive dependencies to delete. */
+			/* collect all archive dependencies to delete */
 			_pkg_to_delete.for_each([&](Archive_path &elem) {
 				Path pkg_version_path { elem };
 				Path archive_file_path { Directory::join(pkg_version_path, "archives") };
@@ -115,34 +112,26 @@ class Depot_remove::Archive_remover
 				archives.for_each_line<Path>([&](auto const &dependency_path) {
 					if (Depot::Archive::type(dependency_path) == Depot::Archive::Type::PKG)
 						return;
-					new (_alloc) Registered_no_delete<Archive_path>(_archive_to_delete, dependency_path);
-				});
+					new (_alloc) Registered_path(_archive_to_delete, dependency_path); });
 				_remove_directory(depot, pkg_version_path);
-				/* Try to delete the parent if it is empty, if not empty the operation fails. */
+				/* try to delete the parent if it is empty, if not empty the operation fails */
 				_remove_directory(depot, Genode::Directory::join(pkg_version_path, ".."));
-				new (_alloc) Registered_no_delete<Archive_path>(_deleted_archives_registry, pkg_version_path);
-			});
+				new (_alloc) Registered_path(_deleted_archives, pkg_version_path); });
 
-			/* Keep archive dependencies that are still referenced by another PKG. */
+			/* keep archive dependencies that are still referenced by another PKG */
 			_for_each_pkg(depot, [&](Path const &pkg_version_path) {
 				Path archive_file_path { Directory::join(pkg_version_path, "archives") };
-				File_content archives { _alloc, depot, archive_file_path, { 8192 } };
-				archives.for_each_line<Path>([&](auto const &dependency_path) {
+				File_content archives  { _alloc, depot, archive_file_path, { 8192 } };
+				archives.for_each_line<Path>([&] (auto const &dependency_path) {
 					if (Depot::Archive::type(dependency_path) == Depot::Archive::Type::PKG)
 						return;
-					_archive_to_delete.for_each([&](Archive_path &path){
-						if (dependency_path == path) {
-							destroy(_alloc, reinterpret_cast<Registered_no_delete<Archive_path>*>(&path));
-						}
-					});
-				});
-			});
+					_archive_to_delete.for_each([&](Registered_path &path){
+						if (dependency_path == path) 
+							destroy(_alloc, &path); }); }); });
 
-			/* Delete archive dependencies. */
-			_archive_to_delete.for_each([&](Archive_path &path){
-
+			/* delete archive dependencies */
+			_archive_to_delete.for_each([&](Archive_path &path) {
 				Path archive {};
-
 				if (Depot::Archive::type(path) == Depot::Archive::Type::SRC) {
 					archive = Directory::join(Depot::Archive::user(path), "bin");
 					archive = Directory::join(archive, _arch);
@@ -151,19 +140,17 @@ class Depot_remove::Archive_remover
 				} else {
 					archive = path;
 				}
-
-				/* If directory does not exist, it might has been deleted before, return silently! */
+				/* if directory does not exist, it might has been deleted before, return silently */
 				if (!depot.directory_exists(archive))
 					return;
-
 				_remove_directory(depot, archive);
-				new (_alloc) Registered_no_delete<Archive_path>(_deleted_archives_registry, archive);
-				/* Try to delete the parent if it is empty, if not empty the operation fails. */
-				_remove_directory(depot, Directory::join(archive, ".."));
-			});
+				new (_alloc) Registered_path(_deleted_archives, archive);
+				/* try to delete the parent if it is empty, if not empty the operation fails */
+				_remove_directory(depot, Directory::join(archive, "..")); });
 		}
 
-		static bool _config_node_match_pkg(Genode::Xml_node const &node, Path pkg) {
+		static bool _config_node_match_pkg(Genode::Xml_node const &node, Path pkg)
+		{
 			if (!node.has_attribute("user"))
 				return false;
 
@@ -185,36 +172,24 @@ class Depot_remove::Archive_remover
 			return true;
 		};
 
-		void _configure_remove_pkgs(Directory &depot, Xml_node const &config) {
-
+		void _configure_remove_pkgs(Directory &depot, Xml_node const &config)
+		{
 			_for_each_pkg(depot, [&] (Path const &pkg_path) {
-
 				config.for_each_sub_node("remove", [&](Xml_node const &node) {
-					if (_config_node_match_pkg(node, pkg_path)) {
-						new (_alloc) Registered_no_delete<Archive_path>(_pkg_to_delete, pkg_path);
-					}
-				});
-
-			});
+					if (_config_node_match_pkg(node, pkg_path))
+						new (_alloc) Registered_path(_pkg_to_delete, pkg_path); }); });
 		}
 
-		void _configure_remove_all_pkgs(Directory &depot, Xml_node const &config) {
-
+		void _configure_remove_all_pkgs(Directory &depot, Xml_node const &config)
+		{
 			_for_each_pkg(depot, [&] (Path const &pkg_path) {
-
 				bool keep = false;
-
 				config.for_each_sub_node("remove-all", [&](Xml_node const &remove_all_node) {
 					remove_all_node.for_each_sub_node("keep", [&](Xml_node const &node) {
 						if (_config_node_match_pkg(node, pkg_path))
-							keep = true;
-					});
-				});
-
+							keep = true; }); });
 				if (!keep)
-					new (_alloc) Registered_no_delete<Archive_path>(_pkg_to_delete, pkg_path);
-
-			});
+					new (_alloc) Registered_path(_pkg_to_delete, pkg_path); });
 		}
 
 
@@ -223,23 +198,20 @@ class Depot_remove::Archive_remover
 		void generate_report(Expanding_reporter &reporter) const
 		{
 			reporter.generate([&](Reporter::Xml_generator &xml) {
-				_deleted_archives_registry.for_each([&] (auto &path) {
+				_deleted_archives.for_each([&] (auto &path) {
 					xml.node("removed", [&]() {
-						xml.attribute("path", path);
-					});
-				});
-			});
+						xml.attribute("path", path); }); }); });
 		}
 
-		Archive_remover(Allocator                         &alloc,
-		                Directory                         &depot,
-		                Xml_node const                    &config)
+		Archive_remover(Allocator      &alloc,
+		                Directory      &depot,
+		                Xml_node const &config)
 		:
-			_alloc    { alloc },
-			_arch     { config.attribute_value("arch", String<32>()) }
+			_alloc { alloc },
+			_arch  { config.attribute_value("arch", String<32>()) }
 		{
 			if (config.has_sub_node("remove") && config.has_sub_node("remove-all")) {
-				warning("<remove/> and <remove-all/> are mutually exclusive.");
+				warning("<remove/> and <remove-all/> are mutually exclusive");
 				return;
 			}
 
@@ -247,19 +219,15 @@ class Depot_remove::Archive_remover
 			if (config.has_sub_node("remove-all")) _configure_remove_all_pkgs(depot, config);
 
 			_autoremove_pkg_and_dependencies(depot);
-
 		}
 
 		~Archive_remover() {
 			_pkg_to_delete.for_each([this] (auto &elem) {
-				destroy(_alloc, &elem);
-			});
+				destroy(_alloc, &elem); });
 			_archive_to_delete.for_each([this] (auto &elem) {
-				destroy(_alloc, &elem);
-			});
-			_deleted_archives_registry.for_each([this] (auto &elem) {
-				destroy(_alloc, &elem);
-			});
+				destroy(_alloc, &elem); });
+			_deleted_archives.for_each([this] (auto &elem) {
+				destroy(_alloc, &elem); });
 		}
 };
 
@@ -267,10 +235,10 @@ class Depot_remove::Archive_remover
 struct Depot_remove::Main
 {
 	Env                              &_env;
-	Heap                              _heap            { _env.ram(), _env.rm() };
-	Attached_rom_dataspace            _config_rom      { _env, "config" };
-	Signal_handler<Main>              _config_handler  { _env.ep(), *this, &Main::_handle_config };
-	Constructible<Expanding_reporter> _reporter        { };
+	Heap                              _heap           { _env.ram(), _env.rm() };
+	Attached_rom_dataspace            _config_rom     { _env, "config" };
+	Signal_handler<Main>              _config_handler { _env.ep(), *this, &Main::_handle_config };
+	Constructible<Expanding_reporter> _reporter       { };
 
 	Main(Env &env)
 	:
@@ -287,12 +255,12 @@ struct Depot_remove::Main
 		Xml_node const &config { _config_rom.xml() };
 
 		if (!config.has_attribute("arch")) {
-			warning("Missing arch attribute.");
+			warning("missing arch attribute");
 			return;
 		}
 
 		if (!config.has_sub_node("vfs")) {
-			warning("Configuration misses a <vfs> configuration node.");
+			warning("configuration misses a <vfs> configuration node");
 			return;
 		}
 
@@ -303,15 +271,13 @@ struct Depot_remove::Main
 		try {
 			Archive_remover archive_cleaner { _heap, depot, config };
 
-			if (config.attribute_value("report", false)) {
-				if (!_reporter.constructed())
-					_reporter.construct(_env, "removed_archives", "archive_list");
+			_reporter.conditional(config.attribute_value("report", false),
+			                      _env, "removed_archives", "archive_list");
+
+			if (_reporter.constructed())
 				archive_cleaner.generate_report(*_reporter);
-			} else {
-				_reporter.destruct();
-			}
 		} catch (...) {
-			/* Catch any exceptions to prevent the component to abort. */
+			/* catch any exceptions to prevent the component to abort */
 			error("Depot autoclean job finished with error(s).");
 		}
 	}
