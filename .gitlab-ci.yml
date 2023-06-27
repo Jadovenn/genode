@@ -126,12 +126,12 @@ qt5:
     - TOOLCHAIN_HASH="$(cat repos/libports/ports/qt5-host.hash)"
     - TOOLCHAIN_ARCHIVE="$(echo genode-qt5-$TOOLCHAIN_HASH).tar.xz"
     - PORT_HASH="$(cat repos/libports/ports/qt5.hash)"
-    - PORT_VERSION="22.08"
+    - PORT_VERSION="23.05"
     - mkdir -p toolchain
   script:
     - if ! tar xPf toolchain/$TOOLCHAIN_ARCHIVE; then
         tool/tool_chain_qt5 build install MAKE_JOBS=4;
-        tar cJf toolchain/$TOOLCHAIN_ARCHIVE /usr/local/genode/qt5/$PORT_VERSION --absolute-names;
+        tar cJf toolchain/$TOOLCHAIN_ARCHIVE /usr/local/genode/tool/$PORT_VERSION --absolute-names;
       fi
     - tool/ports/prepare_port qt5
     - rm -fv contrib/qt5-host-$TOOLCHAIN_HASH/*.tar.*
