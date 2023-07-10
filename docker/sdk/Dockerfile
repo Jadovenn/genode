@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 as base
+FROM ubuntu:22.04 as base
 LABEL maintainer="Gapfruit"
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
@@ -7,7 +7,7 @@ RUN apt-get update && \
                     apt-utils \
                     autoconf2.64 \
                     autogen \
-                    automake-1.15 \
+                    automake \
                     bash-completion \
                     bc \
                     binutils \
@@ -18,7 +18,7 @@ RUN apt-get update && \
                     bzip2 \
                     ca-certificates \
                     ccache \
-                    clang-tools-10 \
+                    clang-tools \
                     cmake \
                     cpio \
                     cpp \
@@ -68,8 +68,8 @@ RUN apt-get update && \
                     lynx \
                     make \
                     mawk \
-                    mosquitto-clients \
                     moreutils \
+                    mosquitto-clients \
                     mtools \
                     net-tools \
                     netcat-openbsd \
@@ -96,7 +96,8 @@ RUN apt-get update && \
                     python3-tempita \
                     qemu-system-arm \
                     qemu-system-x86 \
-                    qt5-default \
+                    qt5-qmake \
+                    qtbase5-dev \
                     qtchooser \
                     rsyslog \
                     socat \
@@ -161,7 +162,7 @@ RUN curl -sL https://packages.microsoft.com/keys/microsoft.asc | \
     gpg --dearmor | \
     tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null; \
 # Add the Azure CLI software repository
-    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ focal main" | \
+    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ jammy main" | \
     tee /etc/apt/sources.list.d/azure-cli.list; \
     apt-get update && apt-get install -qy --no-install-recommends azure-cli && \
     az extension add --upgrade --yes --name azure-iot
