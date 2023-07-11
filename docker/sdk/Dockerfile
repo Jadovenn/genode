@@ -104,6 +104,7 @@ RUN apt-get update && \
                     sshpass \
                     subversion \
                     sudo \
+                    swtpm \
                     tcl \
                     tcllib \
                     tdom \
