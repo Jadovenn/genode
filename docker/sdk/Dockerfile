@@ -28,6 +28,7 @@ RUN apt-get update && \
                     dosfstools \
                     e2tools \
                     expect \
+                    fdisk \
                     flex \
                     fuse \
                     fuseext2 \
