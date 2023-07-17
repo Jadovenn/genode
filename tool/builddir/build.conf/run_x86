@@ -16,7 +16,7 @@ QEMU_RUN_OPT := --include power_on/qemu  --include log/qemu --include image/iso
 # in 'qemu-system-x86_64', resulting in the error '-no-kvm: invalid option'.
 # To resolve this issue, comment out or remove the QEMU_OPT line below.
 #
-QEMU_OPT += -no-kvm
+QEMU_OPT += -machine accel=tcg
 
 # enable KVM full virtualization support in Qemu
 #QEMU_OPT += -enable-kvm
