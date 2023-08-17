@@ -5,7 +5,7 @@ RUN apt-get update && \
     apt-get install -qy --no-install-recommends \
                     apt-transport-https \
                     apt-utils \
-                    autoconf2.64 \
+                    autoconf2.69 \
                     autogen \
                     automake \
                     bash-completion \
@@ -58,6 +58,8 @@ RUN apt-get update && \
                     libexpat1-dev \
                     libfl2 \
                     libfontconfig1 \
+                    libgmp-dev \
+                    libgmp10 \
                     libncurses-dev \
                     libpixman-1-dev \
                     libsdl1.2-dev \
