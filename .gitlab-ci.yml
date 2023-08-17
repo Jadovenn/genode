@@ -173,20 +173,21 @@ qt5:
   before_script:
     - apt-get install -qy --no-install-recommends
                       file
-                      gnat-9
+                      gnat-11
                       gprbuild
                       pkg-config
                       libncurses-dev
                       texinfo
                       gpg
                       libexpat1-dev
-    - TOOLCHAIN_ARCHIVE="genode-toolchain-$PLATFORM.tar.xz"
+    - TOOLCHAIN_VERSION="23.05"
+    - TOOLCHAIN_ARCHIVE="genode-toolchain-$TOOLCHAIN_VERSION-$PLATFORM.tar.xz"
     - mkdir -p toolchain
   script:
     - tool/ports/prepare_port binutils gcc
     - tool/tool_chain $PLATFORM install MAKE_JOBS=4
     - ls -lh /usr/local/genode/tool || true
-    - tar cJf toolchain/$TOOLCHAIN_ARCHIVE /usr/local/genode/tool/{21.05,current} --absolute-names;
+    - tar cJf toolchain/$TOOLCHAIN_ARCHIVE /usr/local/genode/tool/$TOOLCHAIN_VERSION --absolute-names;
   artifacts:
     paths:
       - toolchain/$TOOLCHAIN_ARCHIVE
