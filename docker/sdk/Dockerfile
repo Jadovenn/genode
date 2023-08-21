@@ -144,12 +144,16 @@ RUN pip3 install --no-cache-dir \
 RUN ln -s $(which scan-build-10) /usr/bin/scan-build
 
 ENV TOOLCHAIN_COMMON       https://dev.gapfruit.com/genode-toolchain/genode-toolchain-23.05.tar.xz
+ENV TOOLCHAIN_COMMON_OLD   https://dev.gapfruit.com/genode-toolchain/genode-toolchain-21.05-x86_64.tar.xz
 ENV TOOLCHAIN_ARMHF        https://dev.gapfruit.com/genode-toolchain/genode-toolchain-23.05-armhf.tar.xz
 ENV TOOLCHAIN_ARMHF_LINUX  https://dev.gapfruit.com/arm-linux-gnueabihf/arm-linux-gnueabihf-x86_64_7.4.tar.gz
 
 RUN ["/bin/bash", "-c", "set -o pipefail && curl -sL \"$TOOLCHAIN_COMMON\"      | tar xPJf -"]
 RUN ["/bin/bash", "-c", "set -o pipefail && curl -sL \"$TOOLCHAIN_ARMHF\"       | tar xPJf -"]
 RUN ["/bin/bash", "-c", "set -o pipefail && curl -sL \"$TOOLCHAIN_ARMHF_LINUX\" | tar xPzf - -C /"]
+
+# goa projects still need 21.05 tool chain!
+RUN ["/bin/bash", "-c", "set -o pipefail && curl -sL \"$TOOLCHAIN_COMMON_OLD\"  | tar xPJf -"]
 
 FROM base
 ENV GENODE_TOOLCHAIN_DIR /var/cache/genode/toolchain
