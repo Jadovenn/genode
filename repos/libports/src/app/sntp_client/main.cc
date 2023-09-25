@@ -162,6 +162,13 @@ void Main::ip_config(Ipv4_config const &ip_config)
 
 Main::Main(Env &env) : _env(env)
 {
+	/* deprecated dst_ip configuration option */
+	if (_config.has_attribute("dst_ip")) {
+		warning("\"dst_ip\" configuration attribute is deprecated, please use \"dst_addr\"");
+		_dst_ip = _config.attribute_value("dst_ip", Ipv4_address());
+		if (_dst_ip == Ipv4_address()) {
+			throw Invalid_arguments(); } }
+
 	/* exit unsuccessful if parameters are invalid */
 	if (_dst_ns == Domain_name()) {
 		if (_dst_ip == Ipv4_address()) {
