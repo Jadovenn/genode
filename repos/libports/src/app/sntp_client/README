@@ -74,4 +74,4 @@ Examples
 ~~~~~~~~
 
 An example of how to use the component can be found in the test script
-'libports/run/sntp_client.run' and 'os/run/ping_nic_router.run'.
+'libports/run/sntp_client.run'.
