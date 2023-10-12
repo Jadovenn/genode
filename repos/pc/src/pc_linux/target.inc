@@ -55,6 +55,9 @@ LX_ENABLE += USB_PCI USB_UHCI_HCD
 # Intel framebuffer
 LX_ENABLE += DRM DRM_I915
 
+# Nouveau framebuffer
+LX_ENABLE += DRM_NOUVEAU
+
 # to automatically set up screen mode at boot time
 LX_ENABLE += FB
 
