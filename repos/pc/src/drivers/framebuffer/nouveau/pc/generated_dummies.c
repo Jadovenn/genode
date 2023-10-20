@@ -3224,3 +3224,11 @@ void __sched yield(void)
 	lx_emul_trace_and_stop(__func__);
 }
 
+
+#include <linux/kernel.h>
+
+int get_option(char ** str,int * pint)
+{
+	lx_emul_trace_and_stop(__func__);
+}
+

@@ -9,8 +9,10 @@ INC_DIR += $(REL_PRG_DIR)
 
 SRC_CC  += main.cc
 SRC_CC  += generated_dummies.cc
+SRC_CC  += generated_dummies_bis.cc
 SRC_CC  += dummies.cc
 SRC_C   += lx_emul.c
+SRC_C   += lx_user.c
 #SRC_C   += pci.c
 SRC_C   += lx_emul/common_dummies.c
 SRC_C   += lx_emul/shadow/mm/page_alloc.c
