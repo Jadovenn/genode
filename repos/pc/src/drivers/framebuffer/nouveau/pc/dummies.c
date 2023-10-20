@@ -57,3 +57,5 @@ void acpi_device_notify(struct device * dev)
 	lx_emul_trace(__func__);
 }
 
+const struct attribute_group dev_attr_physical_location_group = {};
+

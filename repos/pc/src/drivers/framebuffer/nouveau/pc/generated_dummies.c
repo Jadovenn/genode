@@ -36,13 +36,6 @@ struct sk_buff * __alloc_skb(unsigned int size,gfp_t gfp_mask,int flags,int node
 struct cpumask __cpu_active_mask;
 
 
-#include <linux/cpuhotplug.h>
-
-int __cpuhp_setup_state(enum cpuhp_state state,const char * name,bool invoke,int (* startup)(unsigned int cpu),int (* teardown)(unsigned int cpu),bool multi_instance)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
 
 #include <drm/drm_atomic_state_helper.h>
 
@@ -153,11 +146,6 @@ void * __drm_universal_plane_alloc(struct drm_device * dev,size_t size,size_t of
 }
 
 
-//#include <asm-generic/sections.h>
-
-//char __start_rodata[], __end_rodata[] = {};
-
-
 #include <linux/mm.h>
 
 void __folio_put(struct folio * folio)
@@ -224,23 +212,10 @@ void __init __register_sysctl_init(const char * path,struct ctl_table * table,co
 
 #include <linux/srcu.h>
 
-int __srcu_read_lock(struct srcu_struct * ssp)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/srcu.h>
-
 void __srcu_read_unlock(struct srcu_struct * ssp,int idx)
 {
 	lx_emul_trace_and_stop(__func__);
 }
-
-
-//#include <asm-generic/sections.h>
-
-//char __start_rodata[], __end_rodata[] = {};
 
 
 #include <linux/vmalloc.h>
@@ -348,14 +323,6 @@ bool acpi_dev_resource_interrupt(struct acpi_resource * ares,int index,struct re
 
 #include <linux/acpi.h>
 
-void acpi_device_notify(struct device * dev)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/acpi.h>
-
 void acpi_device_notify_remove(struct device * dev)
 {
 	lx_emul_trace_and_stop(__func__);
@@ -454,22 +421,6 @@ acpi_status acpi_walk_namespace(acpi_object_type type,acpi_handle start_object,u
 }
 
 
-#include <linux/random.h>
-
-void add_interrupt_randomness(int irq)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/clocksource.h>
-
-void clocksource_arch_init(struct clocksource * cs)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/console.h>
 
 void console_lock(void)
@@ -489,22 +440,6 @@ void console_unlock(void)
 #include <linux/arch_topology.h>
 
 const struct cpumask * cpu_clustergroup_mask(int cpu)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/cpu.h>
-
-void cpu_hotplug_disable(void)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/cpu.h>
-
-void cpu_hotplug_enable(void)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -2463,14 +2398,6 @@ s32 i2c_smbus_xfer(struct i2c_adapter * adapter,u16 addr,unsigned short flags,ch
 }
 
 
-#include <linux/sched/signal.h>
-
-void ignore_signals(struct task_struct * t)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <net/netfilter/nf_conntrack.h>
 
 struct net init_net;
@@ -2482,11 +2409,6 @@ struct pseudo_fs_context * init_pseudo(struct fs_context * fc,unsigned long magi
 {
 	lx_emul_trace_and_stop(__func__);
 }
-
-
-#include <linux/utsname.h>
-
-struct user_namespace init_user_ns;
 
 
 #include <linux/init.h>
@@ -2570,13 +2492,6 @@ void __iomem * ioremap_wc(resource_size_t phys_addr,unsigned long size)
 }
 
 
-extern bool irq_wait_for_poll(struct irq_desc * desc);
-bool irq_wait_for_poll(struct irq_desc * desc)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/irq_work.h>
 
 bool irq_work_queue(struct irq_work * work)
@@ -2612,22 +2527,6 @@ bool is_swiotlb_active(struct device * dev)
 #include <linux/kobject.h>
 
 struct kobject *kernel_kobj;
-
-
-#include <linux/kernfs.h>
-
-void kernfs_get(struct kernfs_node * kn)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/kernfs.h>
-
-void kernfs_put(struct kernfs_node * kn)
-{
-	lx_emul_trace_and_stop(__func__);
-}
 
 
 #include <linux/skbuff.h>
@@ -2866,14 +2765,6 @@ int power_supply_is_system_supplied(void)
 }
 
 
-#include <linux/proc_fs.h>
-
-struct proc_dir_entry * proc_create_seq_private(const char * name,umode_t mode,struct proc_dir_entry * parent,const struct seq_operations * ops,unsigned int state_size,void * data)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <linux/sysctl.h>
 
 int proc_dointvec_minmax(struct ctl_table * table,int write,void * buffer,size_t * lenp,loff_t * ppos)
@@ -2890,31 +2781,9 @@ int proc_douintvec(struct ctl_table * table,int write,void * buffer,size_t * len
 }
 
 
-#include <linux/rcupdate.h>
-
-void rcu_sched_clock_irq(int user)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
 #include <acpi/acpi_bus.h>
 
 int register_acpi_notifier(struct notifier_block * nb)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void register_handler_proc(unsigned int irq,struct irqaction * action);
-void register_handler_proc(unsigned int irq,struct irqaction * action)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void register_irq_proc(unsigned int irq,struct irq_desc * desc);
-void register_irq_proc(unsigned int irq,struct irq_desc * desc)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -2979,14 +2848,6 @@ void rt_mutex_setprio(struct task_struct * p,struct task_struct * pi_task)
 #include <linux/seq_file.h>
 
 void seq_printf(struct seq_file * m,const char * f,...)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/seq_file.h>
-
-void seq_vprintf(struct seq_file * m,const char * f,va_list args)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -3088,13 +2949,6 @@ void smp_call_function_many(const struct cpumask * mask,smp_call_func_t func,voi
 #include <linux/smp.h>
 
 int smp_call_function_single(int cpu,smp_call_func_t func,void * info,int wait)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-extern void software_node_notify(struct device * dev);
-void software_node_notify(struct device * dev)
 {
 	lx_emul_trace_and_stop(__func__);
 }
@@ -3302,14 +3156,6 @@ void unregister_irq_proc(unsigned int irq,struct irq_desc * desc)
 #include <linux/shrinker.h>
 
 void unregister_shrinker(struct shrinker * shrinker)
-{
-	lx_emul_trace_and_stop(__func__);
-}
-
-
-#include <linux/timekeeper_internal.h>
-
-void update_vsyscall(struct timekeeper * tk)
 {
 	lx_emul_trace_and_stop(__func__);
 }
