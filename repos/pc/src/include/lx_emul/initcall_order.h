@@ -1,7 +1,7 @@
 /*
  * \brief  Array defining order of Linux Kernel initcalls
  * \author Automatically generated file - do no edit
- * \date   2023-06-20
+ * \date   2023-10-24
  */
 
 #pragma once
@@ -23,6 +23,8 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_static_call_initearly",
 	"__initcall_init_zero_pfnearly",
 	"__initcall_init_fs_inode_sysctlsearly",
+	"__initcall_efi_memreserve_root_initearly",
+	"__initcall_efi_earlycon_remap_fbearly",
 	"__initcall_init_mmap_min_addr0",
 	"__initcall_pci_realloc_setup_params0",
 	"__initcall_e820__register_nvs_regions1",
@@ -107,6 +109,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_serio_init4",
 	"__initcall_input_init4",
 	"__initcall_power_supply_class_init4",
+	"__initcall_efisubsys_init4",
 	"__initcall_proto_init4",
 	"__initcall_net_dev_init4",
 	"__initcall_neigh_init4",
@@ -189,6 +192,7 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_proc_filesystems_init6",
 	"__initcall_start_dirtytime_writeback6",
 	"__initcall_init_devpts_fs6",
+	"__initcall_efivarfs_init6",
 	"__initcall_key_proc_init6",
 	"__initcall_asymmetric_key_init6",
 	"__initcall_x509_key_init6",
@@ -216,6 +220,9 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_drm_buddy_module_init6",
 	"__initcall_drm_display_helper_module_init6",
 	"__initcall_i915_init6",
+	"__initcall_nouveau_drm_init6",
+	"__initcall_ch7006_init6",
+	"__initcall_sil164_init6",
 	"__initcall_topology_sysfs_init6",
 	"__initcall_cacheinfo_sysfs_init6",
 	"__initcall_blackhole_netdev_init6",
@@ -257,7 +264,9 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_psmouse_init6",
 	"__initcall_pkg_temp_thermal_init6",
 	"__initcall_thermal_throttle_init_device6",
+	"__initcall_esrt_sysfs_init6",
 	"__initcall_wmi_bmof_driver_init6",
+	"__initcall_mxm_wmi_init6",
 	"__initcall_sock_diag_init6",
 	"__initcall_packet_init6",
 	"__initcall_kernel_do_mounts_initrd_sysctls_init7",
@@ -291,6 +300,8 @@ static const char * lx_emul_initcall_order[] = {
 	"__initcall_dmar_free_unused_resources7",
 	"__initcall_sync_state_resume_initcall7",
 	"__initcall_deferred_probe_initcall7",
+	"__initcall_efi_shutdown_init7",
+	"__initcall_efi_earlycon_unmap_fb7",
 	"__initcall_regulatory_init_db7",
 	"__initcall_pci_mmcfg_late_insert_resources7",
 	"__initcall_con_initcon",
