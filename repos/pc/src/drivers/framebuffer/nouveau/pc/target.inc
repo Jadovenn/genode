@@ -9,7 +9,6 @@ INC_DIR += $(REL_PRG_DIR)
 
 SRC_CC  += main.cc
 SRC_CC  += generated_dummies.cc
-SRC_CC  += generated_dummies_bis.cc
 SRC_CC  += dummies.cc
 SRC_C   += lx_emul.c
 SRC_C   += lx_user.c

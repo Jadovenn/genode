@@ -28,8 +28,6 @@ class Framebuffer::Driver
 		:
 			_env { env }
 		{
-			Lx_kit::initialize(_env, _scheduler_handler);
-			env.exec_static_constructors();
 		}
 
 		void handle_scheduler()
@@ -40,6 +38,10 @@ class Framebuffer::Driver
 		void start()
 		{
 			log("--- nouveau framebuffer driver started ---");
+			log("STAGE: __init_calls");
+			Lx_kit::initialize(_env, _scheduler_handler);
+			_env.exec_static_constructors();
+			log("STAGE: lx_emul_start_kernel");
 			lx_emul_start_kernel(nullptr);
 		}
 };
