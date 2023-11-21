@@ -1,0 +1,137 @@
+assert_spec x86_64
+
+set depot_archives   { }
+set build_components { }
+
+lappend depot_archives [depot_user]/src/[base_src]
+lappend depot_archives [depot_user]/src/init
+lappend depot_archives [depot_user]/src/acpi_drv
+lappend depot_archives [depot_user]/src/platform_drv
+lappend depot_archives [depot_user]/src/pci_decode
+lappend depot_archives [depot_user]/src/report_rom
+
+set build_components {
+	drivers/framebuffer/nouveau/pc
+	test/framebuffer
+}
+
+build $build_components
+
+
+append config {
+<config verbose="yes" prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="TRACE"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="report_rom" caps="100">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="ROM" />
+			<service name="Report" />
+		</provides>
+		<config>
+			<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+			<policy label="intel_fb_drv -> intel_opregion" report="acpi_drv -> intel_opregion"/>
+			<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+		</config>
+		<route>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD">  <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="acpi_drv" caps="250">
+		<resource name="RAM" quantum="6M"/>
+		<route>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+		</route>
+	</start>
+
+	<start name="pci_decode" caps="350">
+		<resource name="RAM" quantum="2M"/>
+		<route>
+			<service name="Report">
+				<child name="report_rom"/> </service>
+			<service name="ROM" label="system">
+				<child name="report_rom"/> </service>
+			<service name="IO_MEM"> <parent/> </service>
+			<service name="LOG">    <parent/> </service>
+			<service name="PD">     <parent/> </service>
+			<service name="RM">     <parent/> </service>
+			<service name="CPU">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>
+		</route>
+	</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="report_rom"/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="PD">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+		</route>
+		<config>
+			<policy label_prefix="pc_nouveau_fb_drv" info="yes">
+				<pci class="VGA"/>
+				<pci class="ISABRIDGE"/>
+			</policy>
+			<policy label_prefix="intel_gpu_drv" info="yes">
+				<pci class="VGA"/>
+				<pci class="ISABRIDGE"/>
+			</policy>
+		</config>
+	</start>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="pc_nouveau_fb_drv">
+		<resource name="RAM" quantum="8M"/>
+		<route>
+			<service name="Platform">  <child name="platform_drv"/> </service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config>
+}
+
+create_boot_directory
+import_from_depot $depot_archives
+install_config $config
+
+build_boot_image [build_artifacts]
+
+run_genode_until forever
+
