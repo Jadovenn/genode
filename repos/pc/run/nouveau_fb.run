@@ -1,0 +1,525 @@
+
+assert_spec x86
+
+if {
+	![have_spec hw] &&
+	![have_spec nova]
+} {
+	puts "Platform is unsupported."
+	exit 0
+}
+
+
+if {[have_spec nova]} {
+	# enable logmem to get kernel logs in memory
+	proc kernel_output { } { return "novga logmem" }
+}
+
+
+# serial is not ever usable on hardware after resume, avoid hang by now
+if {![have_include "power_on/qemu"]} {
+	# switch off serial device usage by kernel and core
+	proc boot_output { } { return "" }
+}
+
+
+# non Intel machines have no GPU support, e.g. Qemu and AMD
+set board_non_intel [expr [have_include "power_on/qemu"]]
+
+set use_gpu_client 0
+set use_gpe "no"
+
+proc priority_timer    { } { return {priority="0"} }
+proc priority_base     { } { return {priority="-1"} }
+proc priority_config   { } { return {priority="-1"} }
+proc priority_gui      { } { return {priority="-1"} }
+proc priority_wm       { } { return {priority="-2"} }
+proc priority_log      { } { return {priority="-2"} }
+proc priority_drivers  { } { return {priority="-2"} }
+proc priority_scenario { } { return {priority="-3"} }
+
+
+proc gui_config { } {
+	set return_gui ""
+
+	append return_gui {
+
+	<start name="nitpicker" caps="120" } [priority_gui] {>
+		<resource name="RAM" quantum="8M"/>
+		<provides>
+			<service name="Gui"/> <service name="Capture"/> <service name="Event"/>
+		</provides>
+		<config>
+			<capture/> <event/>
+			<report focus="yes" hover="yes" />
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name="panel"   layer="2" content="client" label="no" focus="none" />
+			<domain name=""        layer="3" content="client" label="no" focus="click" hover="always"/>
+
+			<policy label_prefix="pointer"    domain="pointer"/>
+
+			<default-policy domain=""/>
+		</config>
+		<route>
+			<service name="Timer">  <child name="timer"/></service>
+			<service name="Report"> <child name="gui_reports"/></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+
+	<start name="pointer" caps="100" } [priority_gui] {>
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> </provides>
+		<config shapes="yes" verbose="no"/>
+		<route>
+			<service name="Gui"> <child name="nitpicker"/>  </service>
+			<service name="ROM" label="hover"> <child name="gui_reports"/> </service>
+			<service name="ROM" label="xray"> <child name="gui_reports"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="gui_reports" caps="100" } [priority_gui] {>
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<policy label="pointer -> hover" report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"  report="nitpicker -> xray"/>
+			<policy label="usb_hid_drv -> report" report="usb_drv -> devices"/>
+		</config>
+	</start>
+
+	<start name="wm" caps="1000" } [priority_wm] {>
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<provides>
+			<service name="Gui"/> <service name="Report"/> <service name="ROM"/>
+		</provides>
+		<route>
+			<service name="ROM"    label="config"> <parent label="wm.config"/> </service>
+			<service name="Report" label_last="shape">  <child name="pointer"/> </service>
+			<service name="Gui"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	}
+
+	return $return_gui
+}
+
+
+proc input_config { } {
+	return {
+
+	<start name="ps2_drv" caps="100">
+		<resource name="RAM" quantum="3M"/>
+		<config/>
+		<route>
+			<service name="Platform"> <parent/> </service>
+			<service name="Event"> <child name="event_filter" label="ps2"/> </service>
+			<any-service><parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="event_filter" caps="100">
+		<resource name="RAM" quantum="1280K"/>
+		<provides> <service name="Event"/> </provides>
+		<route>
+			<service name="ROM" label="config"> <parent label="event_filter.config"/> </service>
+			<service name="Event"> <parent/> </service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	}
+}
+
+
+proc log_output { } {
+
+	set return_log ""
+
+	append return_log {
+	<start name="log_core" caps="100" } [priority_log] {>
+		<resource name="RAM" quantum="10M"/>
+		<config period_ms="2000"/>
+		<route>
+			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
+			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
+			<service name="ROM" label="log"> <parent label="core_log"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="LOG" label="log"> <child name="terminal_log"/> </service>
+			<service name="PD"> <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="terminal_log" caps="100" } [priority_log] {>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="LOG"/> </provides>
+		<config/>
+		<route>
+			<service name="Terminal"> <child name="terminal"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="tcp_log_core" caps="100" } [priority_log] {>
+		<binary name="log_core"/>
+		<resource name="RAM" quantum="10M"/>
+		<config period_ms="2000"/>
+		<route>
+			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
+			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
+			<service name="ROM" label="log"> <parent label="core_log"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="LOG" label="log"> <child name="tcp_terminal_log"/> </service>
+			<service name="PD"> <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="tcp_terminal_log" caps="100" } [priority_log] {>
+		<binary name="terminal_log"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="LOG"/> </provides>
+		<config/>
+		<route>
+			<service name="Terminal"> <child name="tcp_terminal"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="terminal" caps="110" } [priority_log] {>
+		<resource name="RAM" quantum="6M"/>
+		<provides><service name="Terminal"/></provides>
+		<config>
+			<initial width="1200" height="900"/>
+			<palette>
+				<color index="0" value="#2f3953"/>
+				<color index="8" value="#2f3953"/>
+			</palette>
+			<vfs>
+				<rom name="VeraMono.ttf"/>
+				<dir name="fonts">
+					<dir name="monospace">
+						<ttf name="regular" path="/VeraMono.ttf" size_px="10"/>
+					</dir>
+				</dir>
+			</vfs>
+		</config>
+		<route>
+			<service name="Gui"> <child name="wm"/> </service>
+			<any-service> <parent/> <any-child/></any-service>
+		</route>
+	</start>
+	}
+
+	append_if [have_spec nova] return_log {
+	<start name="log_kernel" caps="100" } [priority_log] {>
+		<binary name="log_core"/>
+		<resource name="RAM" quantum="10M"/>
+		<config period_ms="2000"/>
+		<route>
+			<service name="ROM" unscoped_label="log_core"> <parent/> </service>
+			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
+			<service name="ROM" label="log"> <parent label="kernel_log"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="PD"> <parent/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+		</route>
+	</start>
+	}
+
+	return $return_log
+}
+
+
+proc nic_config { } {
+	global board_non_intel
+
+	set return_nic ""
+
+	append return_nic {
+
+			<start name="pc_nic_drv" priority="-1" caps="120">
+				<resource name="RAM" quantum="16M"/>
+				<config ld_verbose="yes"/>
+				<route>
+					<service name="Platform"> <child name="platform_drv"/> </service>
+					<service name="Uplink"> <child name="nic_router"/> </service>
+					<service name="Timer"> <child name="timer"/> </service>
+					<service name="PD"> <parent/> </service>
+					<service name="CPU"> <parent/> </service>
+					<service name="LOG"> <parent/> </service>
+					<service name="ROM"> <parent/> </service>
+				</route>
+			</start>
+
+			<start name="nic_router" caps="150">
+				<resource name="RAM" quantum="8M"/>
+				<provides>
+					<service name="Nic"/>
+					<service name="Uplink"/>
+				</provides>
+				<config verbose="no" verbose_domain_state="yes" dhcp_discover_timeout_sec="10" dhcp_request_timeout_sec="6">
+
+					<policy label_prefix="pc_nic_drv" domain="uplink"/>
+					<policy label_prefix="tcp_terminal" domain="downlink"/>
+
+					<domain name="uplink" verbose_packets="no" verbose_packet_drop="no" icmp_echo_server="yes">
+						<nat domain="downlink"
+							 tcp-ports="16384"
+							 udp-ports="16384"
+							 icmp-ids="16384"/>
+						<tcp-forward port="23" domain="downlink" to="10.0.3.2"/>
+					</domain>
+
+					<domain name="downlink" interface="10.0.3.1/24">
+						<dhcp-server ip_first="10.0.3.2" ip_last="10.0.3.2">
+							<dns-server ip="8.8.8.8"/>
+							<dns-server ip="1.1.1.1"/>
+						</dhcp-server>
+						<tcp dst="0.0.0.0/0"><permit-any domain="uplink" /></tcp>
+						<udp dst="0.0.0.0/0"><permit-any domain="uplink" /></udp>
+						<icmp dst="0.0.0.0/0" domain="uplink"/>
+					</domain>
+
+				</config>
+				<route>
+					<service name="Timer"> <child name="timer"/> </service>
+					<service name="PD"> <parent/> </service>
+					<service name="CPU"> <parent/> </service>
+					<service name="LOG"> <parent/> </service>
+					<service name="ROM"> <parent/> </service>
+				</route>
+			</start>
+
+			<start name="tcp_terminal" caps="200">
+				<resource name="RAM" quantum="8M"/>
+				<provides> <service name="Terminal"/> </provides>
+				<config>
+					<policy label_prefix="tcp_terminal_log" port="23"/>
+					<vfs>
+						<dir name="dev"> <log/> </dir>
+						<dir name="socket"> <lwip dhcp="yes"/> </dir>
+						<dir name="pipe"> <pipe/> </dir>
+					</vfs>
+					<libc stdout="/dev/log" socket="/socket" pipe="/pipe"/>
+				</config>
+				<route>
+					<service name="Nic"> <child name="nic_router"/> </service>
+					<service name="Timer"> <child name="timer"/> </service>
+					<service name="PD"> <parent/> </service>
+					<service name="CPU"> <parent/> </service>
+					<service name="LOG"> <parent/> </service>
+					<service name="ROM"> <parent/> </service>
+				</route>
+			</start>}
+
+	return $return_nic
+}
+
+
+proc gpu_config { } {
+	global board_non_intel
+
+	set return_gpu ""
+
+	append return_gpu {
+		<start name="intel_gpu_drv" caps="2000" } [priority_drivers] {>
+			<resource name="RAM" quantum="40M"/>
+			<provides>
+				<service name="Gpu"/>
+				<service name="Platform"/>
+			</provides>
+			<config max_framebuffer_memory="64M">
+				<device vendor="0x8086" device="0x1606" generation="8" platform="broadwell" description="HD Graphics (BDW GT1 ULT)"/>
+				<device vendor="0x8086" device="0x1616" generation="8" platform="broadwell" description="HD Graphics 5500 (BDW GT2 ULT)"/>
+				<device vendor="0x8086" device="0x1622" generation="8" platform="broadwell" description="Iris Pro Graphics 6200 (BDW GT3e)"/>
+				<device vendor="0x8086" device="0x1916" generation="9" platform="skylake"  description="HD Graphics 520 (Skylake, Gen9)"/>
+				<device vendor="0x8086" device="0x191b" generation="9" platform="skylake"  description="HD Graphics 530 (Skylake, Gen9)"/>
+				<device vendor="0x8086" device="0x5916" generation="9" platform="kabylake" description="HD Graphics 620 (Kaby Lake, Gen9p5)"/>
+				<device vendor="0x8086" device="0x5917" generation="9" platform="kabylake" description="UHD Graphics 620 (Kaby Lake, Gen9p5)"/>
+				<device vendor="0x8086" device="0x591b" generation="9" platform="kabylake" description="HD Graphics 630 (Kaby Lake, Gen9p5)"/>
+				<device vendor="0x8086" device="0x3ea0" generation="9" platform="whiskeylake" description="UHD Graphics 620 (Whiskey Lake, Gen9p5)"/>
+				<device vendor="0x8086" device="0x9a49" generation="12" platform="tigerlake" description="Iris Xe Graphics (Tiger Lake, Xe)"/>
+			</config>
+			<route>
+				<service name="Platform">
+					<child name="platform_drv"/>
+				</service>
+				<any-service> <parent /> <any-child/> </any-service>
+			</route>
+			</start>
+
+			<start name="pc_intel_fb_drv" caps="1000">
+				<resource name="RAM" quantum="60M"/>
+				<config ld_verbose="yes" apply_on_hotplug="yes">
+					<report connectors="yes"/>
+				</config>
+				<route>
+					<service name="Platform"> <child name="intel_gpu_drv"/> </service>
+					<service name="Report"> <child name="drivers_reports"/> </service>
+					<service name="ROM" label="intel_opregion"> <child name="drivers_reports"/> </service>
+					<any-service> <parent /> <any-child/> </any-service>
+				</route>
+			</start>}
+
+	return $return_gpu
+}
+
+build {
+	core timer init lib/ld
+	server/tcp_terminal
+	server/report_rom
+	server/dynamic_rom
+	server/rom_filter
+	drivers/acpi
+	drivers/platform
+	drivers/framebuffer/intel/pc
+	drivers/gpu/intel
+	app/pci_decode
+}
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/init \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/ps2_drv \
+                  [depot_user]/pkg/themed_wm \
+                  [depot_user]/pkg/terminal \
+                  [depot_user]/src/terminal_log \
+                  [depot_user]/src/event_filter \
+                  [depot_user]/raw/drivers_interactive-pc \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/nic_router \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/pc_nic_drv \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_lwip \
+                  [depot_user]/src/vfs_pipe \
+                  [depot_user]/src/log_core
+
+set config ""
+append config {
+	<config verbose="no" prio_levels="4">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="TRACE"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<start name="timer" caps="100" } [priority_timer] {>
+			<resource name="CPU" quantum="10"/>
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+
+		<start name="drivers_reports" caps="100" } [priority_base] {>
+			<binary name="report_rom"/>
+			<resource name="RAM" quantum="1M"/>
+			<provides>
+				<service name="Report"/>
+				<service name="ROM"/>
+			</provides>
+			<config verbose="no">
+				<policy label="pci_decode -> system"    report="acpi_drv -> acpi"/>
+				<policy label="pc_intel_fb_drv -> intel_opregion" report="acpi_drv -> intel_opregion"/>
+				<policy label="platform_drv -> devices" report="pci_decode -> devices"/>
+			</config>
+			<route>
+				<service name="LOG"> <parent/> </service>
+				<service name="PD">  <parent/> </service>
+				<service name="CPU"> <parent/> </service>
+				<service name="ROM"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="acpi_drv" caps="350" } [priority_base] {>
+			<resource name="RAM" quantum="5M"/>
+			<config report="yes"/>
+			<route>
+				<service name="IO_MEM"> <parent/> </service>
+				<service name="LOG">    <parent/> </service>
+				<service name="PD">     <parent/> </service>
+				<service name="RM">     <parent/> </service>
+				<service name="CPU">    <parent/> </service>
+				<service name="ROM">    <parent/> </service>
+				<service name="Report"> <child name="drivers_reports"/> </service>
+			</route>
+		</start>
+
+		<start name="pci_decode" caps="350" } [priority_base] {>
+			<resource name="RAM" quantum="1M"/>
+			<route>
+				<service name="Report">
+					<child name="drivers_reports"/> </service>
+				<service name="ROM" label="system">
+					<child name="drivers_reports"/> </service>
+				<service name="IO_MEM"> <parent/> </service>
+				<service name="LOG">    <parent/> </service>
+				<service name="PD">     <parent/> </service>
+				<service name="RM">     <parent/> </service>
+				<service name="CPU">    <parent/> </service>
+				<service name="ROM">    <parent/> </service>
+			</route>
+		</start>
+
+	<start name="platform_drv" caps="100" managing_system="yes">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Platform"/> </provides>
+		<route>
+			<service name="ROM" label="devices"> <child name="drivers_reports"/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="PD">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+		</route>
+		<config>
+			<policy label_prefix="intel_fb_drv" info="yes">
+				<pci class="VGA"/>
+				<pci class="ISABRIDGE"/>
+			</policy>
+			<policy label_prefix="intel_gpu_drv" info="yes">
+				<pci class="VGA"/>
+				<pci class="ISABRIDGE"/>
+			</policy>
+			<policy label_prefix="pc_nic_drv" info="yes"> <pci class="ETHERNET"/> </policy>
+		</config>
+	</start>
+
+	} [  nic_config] {
+	} [  gpu_config] {
+	} [  gui_config] {
+	} [  log_output] {
+
+	</config>
+}
+
+install_config $config
+
+build_boot_image [build_artifacts]
+
+append qemu_args "-smp 1"
+
+run_genode_until forever
+
